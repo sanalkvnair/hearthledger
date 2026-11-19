@@ -68,6 +68,8 @@ class RecurringController(
             existing.copy(
                 type = r.type, amount = r.amount, currency = r.currency.uppercase(), accountId = r.accountId, categoryId = r.categoryId,
                 note = r.note, frequency = r.frequency, startDate = r.startDate, endDate = r.endDate, active = r.active,
+                // Occurrences derive from start date + frequency; restart so none are skipped (inserts are idempotent).
+                nextIndex = if (existing.startDate != r.startDate || existing.frequency != r.frequency) 0 else existing.nextIndex,
                 commitment = commitmentFor(r), necessity = if (r.type == TxnType.EXPENSE) r.necessity else null,
             ),
         )

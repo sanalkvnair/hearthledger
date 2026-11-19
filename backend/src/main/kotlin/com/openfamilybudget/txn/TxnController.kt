@@ -18,7 +18,7 @@ data class TxnRequest(
     @field:DecimalMin("0.0001") val amount: BigDecimal,
     @field:Pattern(regexp = "[A-Za-z]{3}") val currency: String,
     /** Optional manual override; otherwise the family's stored rate for the date is used. */
-    val fxRate: BigDecimal? = null,
+    @field:DecimalMin("0.00000001") val fxRate: BigDecimal? = null,
     val date: LocalDate,
     val accountId: Long? = null,
     /** Set on transfers; a savings/FD/investment destination is counted as savings. */

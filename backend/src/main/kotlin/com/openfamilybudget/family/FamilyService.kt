@@ -17,6 +17,7 @@ class FamilyService(
     private val families: FamilyRepository,
     private val members: FamilyMemberRepository,
     private val invitations: InvitationRepository,
+    private val users: com.openfamilybudget.user.AppUserRepository,
     private val events: ApplicationEventPublisher,
     private val current: CurrentUser,
 ) {
@@ -75,7 +76,12 @@ class FamilyService(
         if (inv.acceptedBy != null || inv.expiresAt.isBefore(Instant.now())) {
             throw ApiException(HttpStatus.GONE, "INVITATION_EXPIRED", "Invitation is no longer valid")
         }
-        invitations.save(inv.copy(acceptedBy = userId))
+        if (inv.email != null && !inv.email.equals(users.findById(userId).orElseThrow().email, ignoreCase = true)) {
+            throw ApiException(HttpStatus.FORBIDDEN, "INVITATION_EMAIL", "This invitation was issued for a different email address")
+        }
+        if (!invitations.markAccepted(inv.id!!, userId)) {
+            throw ApiException(HttpStatus.GONE, "INVITATION_EXPIRED", "Invitation is no longer valid")
+        }
         members.save(FamilyMember(familyId = inv.familyId, userId = userId, role = inv.role))
         return families.findById(inv.familyId).orElseThrow()
     }

@@ -21,7 +21,7 @@ Open http://localhost:8081. In Google Cloud Console create an OAuth client with 
 ```sh
 # database
 docker run -d -p 5432:5432 -e POSTGRES_DB=familybudget -e POSTGRES_USER=familybudget -e POSTGRES_PASSWORD=familybudget postgres:17
-cd backend && ./gradlew bootRun       # needs JDK 25 (or use the Docker build)
+cd backend && JWT_SECRET=$(openssl rand -hex 32) ./gradlew bootRun       # needs JDK 25 (or use the Docker build)
 cd frontend && npm install && npm run dev   # http://localhost:5173, proxies /api to :8080
 ```
 

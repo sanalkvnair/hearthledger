@@ -1,6 +1,7 @@
 package com.openfamilybudget.family
 
 import com.openfamilybudget.common.ApiException
+import com.openfamilybudget.common.notFound
 import com.openfamilybudget.common.forbidden
 import org.springframework.http.HttpStatus
 import org.springframework.security.core.context.SecurityContextHolder
@@ -21,6 +22,11 @@ class CurrentUser(private val members: FamilyMemberRepository) {
         membershipOrNull() ?: throw ApiException(HttpStatus.CONFLICT, "NO_FAMILY", "Create or join a family first")
 
     fun familyId(): Long = membership().familyId
+
+    /** Rejects ids of users who are not members of the given family (prevents cross-family references). */
+    fun requireFamilyMember(userId: Long?, familyId: Long) {
+        if (userId != null && members.findByFamilyIdAndUserId(familyId, userId) == null) throw notFound("Member")
+    }
 
     /** Any role that may create/edit data (everyone except VIEWER). */
     fun requireWriter(): FamilyMember = membership().also { if (it.role == Role.VIEWER) throw forbidden() }

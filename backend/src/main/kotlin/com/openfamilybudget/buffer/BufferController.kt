@@ -53,7 +53,7 @@ class BufferController(
         val family = families.findById(familyId).orElseThrow()
         val today = LocalDate.now()
         fun toBase(amount: BigDecimal, cur: String) =
-            amount * runCatching { currency.rateToBase(familyId, family.baseCurrency, cur.trim(), today) }.getOrDefault(BigDecimal.ONE)
+            amount * currency.rateToBase(familyId, family.baseCurrency, cur.trim(), today)
 
         val recurring = rules.findByFamilyId(familyId)
             .filter { it.active && it.type == TxnType.EXPENSE && it.loanId == null && (it.endDate == null || !it.endDate.isBefore(today)) }

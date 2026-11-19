@@ -38,8 +38,8 @@ class ExportController(private val jdbc: JdbcClient, private val current: Curren
     private fun csvCell(v: Any?): String {
         val s = v?.toString().orEmpty()
         // Prefix formula-looking text so spreadsheet apps do not execute it.
-        val safe = if (s.isNotEmpty() && s[0] in "=+-@" && v !is Number) "'$s" else s
-        return if (safe.any { it in ",\"\n\r" }) "\"" + safe.replace("\"", "\"\"") + "\"" else safe
+        val safe = if (v !is Number && s.trimStart().firstOrNull()?.let { it in "=+-@" } == true || s.firstOrNull()?.let { it == '\t' || it == '\r' } == true) "'$s" else s
+        return if (safe.any { it in ",\"\n\r\t" }) "\"" + safe.replace("\"", "\"\"") + "\"" else safe
     }
 
     private fun file(bytes: ByteArray, name: String, type: String) = ResponseEntity.ok()

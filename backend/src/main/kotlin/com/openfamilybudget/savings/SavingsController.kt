@@ -71,7 +71,7 @@ class SavingsController(
         ).param("f", familyId).query { rs, _ ->
             val id = rs.getLong("id")
             val cur = rs.getString("currency").trim()
-            val rate = runCatching { currency.rateToBase(familyId, base, cur, today) }.getOrDefault(BigDecimal.ONE)
+            val rate = currency.rateToBase(familyId, base, cur, today)
             val contributed = (rs.getBigDecimal("opening_balance") * rate + (flows[id] ?: BigDecimal.ZERO)).money()
             val manual = rs.getBigDecimal("current_value")
             val value = manual?.let { (it * rate).money() } ?: contributed

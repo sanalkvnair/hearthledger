@@ -50,6 +50,10 @@ interface FamilyMemberRepository : CrudRepository<FamilyMember, Long> {
 
 interface InvitationRepository : CrudRepository<Invitation, Long> {
     fun findByCode(code: String): Invitation?
+
+    @org.springframework.data.jdbc.repository.query.Modifying
+    @org.springframework.data.jdbc.repository.query.Query("UPDATE invitation SET accepted_by = :user WHERE id = :id AND accepted_by IS NULL")
+    fun markAccepted(@org.springframework.data.repository.query.Param("id") id: Long, @org.springframework.data.repository.query.Param("user") user: Long): Boolean
     fun findByFamilyIdAndAcceptedByIsNull(familyId: Long): List<Invitation>
 }
 

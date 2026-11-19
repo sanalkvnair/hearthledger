@@ -68,7 +68,7 @@ class TxnService(
             if (necessity == null) necessity = cat.defaultNecessity
         }
 
-        val rate = r.fxRate ?: currency.rateToBase(familyId, family.baseCurrency, r.currency, r.date)
+        val rate = (r.fxRate ?: currency.rateToBase(familyId, family.baseCurrency, r.currency, r.date)).setScale(8, java.math.RoundingMode.HALF_UP)
         return Txn(
             id = id, familyId = familyId, userId = userId, type = r.type, amount = r.amount.money(),
             currency = r.currency.uppercase(), fxRate = rate, baseAmount = (r.amount * rate).money(), date = r.date,

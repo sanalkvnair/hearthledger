@@ -31,6 +31,7 @@ class AccountController(private val repo: AccountRepository, private val current
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@Valid @RequestBody r: AccountRequest): Account {
         val familyId = current.requireWriter().familyId
+        current.requireFamilyMember(r.ownerUserId, familyId)
         return repo.save(
             Account(
                 familyId = familyId, ownerUserId = r.ownerUserId, name = r.name, type = r.type,
@@ -43,6 +44,7 @@ class AccountController(private val repo: AccountRepository, private val current
     fun update(@PathVariable id: Long, @Valid @RequestBody r: AccountRequest): Account {
         val familyId = current.requireWriter().familyId
         val a = repo.findByIdAndFamilyId(id, familyId) ?: throw notFound("Account")
+        current.requireFamilyMember(r.ownerUserId, familyId)
         return repo.save(
             a.copy(
                 name = r.name, type = r.type, currency = r.currency.uppercase(), openingBalance = r.openingBalance,

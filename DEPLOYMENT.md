@@ -8,7 +8,7 @@ Two containers plus PostgreSQL: `frontend` (nginx serving the SPA and reverse-pr
 |---|---|
 | `SPRING_DATASOURCE_URL/USERNAME/PASSWORD` | PostgreSQL connection |
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | OAuth client; redirect URI `https://<host>/login/oauth2/code/google` |
-| `JWT_SECRET` | ≥ 32 random bytes (`openssl rand -hex 32`); changing it logs everyone out |
+| `JWT_SECRET` | Required (no default; startup fails otherwise). ≥ 32 random bytes (`openssl rand -hex 32`); changing it logs everyone out |
 | `FRONTEND_URL` | Public origin, e.g. `https://budget.example.com` |
 | `COOKIE_SECURE` | `true` behind HTTPS (also enables HSTS) |
 | `LLM_BASE_URL`, `LLM_API_KEY`, `LLM_MODEL` | Optional PDF import |

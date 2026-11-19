@@ -49,6 +49,8 @@ data class LoanDto(
 @RequestMapping("/api/v1/loans")
 class LoanController(
     private val loans: LoanRepository,
+    private val accounts: com.openfamilybudget.account.AccountRepository,
+    private val categories: com.openfamilybudget.category.CategoryRepository,
     private val rules: RecurringRuleRepository,
     private val recurring: RecurringService,
     private val jdbc: JdbcClient,
@@ -71,6 +73,9 @@ class LoanController(
     @Transactional
     fun create(@Valid @RequestBody r: LoanRequest): LoanDto {
         val m = current.requireWriter()
+        current.requireFamilyMember(r.ownerUserId, m.familyId)
+        r.accountId?.let { accounts.findByIdAndFamilyId(it, m.familyId) ?: throw notFound("Account") }
+        r.categoryId?.let { categories.findByIdAndFamilyId(it, m.familyId) ?: throw notFound("Category") }
         val term = r.term ?: if (r.tenureMonths <= 24) LoanTerm.SHORT_TERM else LoanTerm.LONG_TERM
         val emi = r.emi ?: Amortization.emi(r.principal, r.interestRate, r.tenureMonths)
         val loan = loans.save(

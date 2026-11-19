@@ -25,7 +25,12 @@ const val REFRESH_COOKIE = "ofb_refresh"
 @Configuration
 class SecurityConfig(private val props: AppProperties) {
 
-    private val key by lazy { SecretKeySpec(props.jwt.secret.toByteArray(), "HmacSHA256") }
+    private val key by lazy {
+        require(props.jwt.secret.toByteArray().size >= 32 && !props.jwt.secret.startsWith("dev-only")) {
+            "app.jwt.secret (JWT_SECRET) must be set to a random value of at least 32 bytes, e.g. `openssl rand -hex 32`"
+        }
+        SecretKeySpec(props.jwt.secret.toByteArray(), "HmacSHA256")
+    }
 
     @Bean
     fun jwtEncoder(): JwtEncoder = NimbusJwtEncoder(ImmutableSecret(key))
