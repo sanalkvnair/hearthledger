@@ -1,7 +1,8 @@
-import { AppShell, Avatar, Button, Center, Group, Loader, NavLink, Stack, Text, Title, useMantineColorScheme } from '@mantine/core';
+import { AppShell, Avatar, Burger, Button, Center, Group, Loader, NavLink, Stack, Text, Title, useMantineColorScheme } from '@mantine/core';
 import { IconBuildingBank, IconCalendarRepeat, IconCategory, IconChartPie, IconFileImport, IconHistory, IconPigMoney, IconReceipt, IconTableImport, IconReportMoney, IconTargetArrow, IconUsers } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
+import { useDisclosure } from '@mantine/hooks';
 import { useTranslation } from 'react-i18next';
 import { Navigate, Route, Routes, useLocation, useNavigate } from 'react-router-dom';
 import { api } from './api';
@@ -49,6 +50,7 @@ function Shell() {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const qc = useQueryClient();
+  const [opened, { toggle, close }] = useDisclosure(false);
 
   const links = [
     { to: '/', label: t('nav.dashboard'), icon: IconChartPie },
@@ -72,8 +74,14 @@ function Shell() {
   };
 
   return (
-    <AppShell navbar={{ width: 240, breakpoint: 'sm' }} padding="md">
-      <AppShell.Navbar p="md">
+    <AppShell header={{ height: 52 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }} padding="md">
+      <AppShell.Header hiddenFrom="sm">
+        <Group h="100%" px="md" gap="sm">
+          <Burger opened={opened} onClick={toggle} size="sm" aria-label="Menu" />
+          <Title order={4}>{t('appName')}</Title>
+        </Group>
+      </AppShell.Header>
+      <AppShell.Navbar p="md" style={{ overflowY: 'auto' }}>
         <Stack justify="space-between" h="100%">
           <Stack gap="xs">
             <Title order={4} mb="sm">{t('appName')}</Title>
@@ -83,7 +91,7 @@ function Shell() {
                 label={l.label}
                 leftSection={<l.icon size={18} />}
                 active={l.to === '/' ? pathname === '/' : pathname.startsWith(l.to)}
-                onClick={() => navigate(l.to)}
+                onClick={() => { navigate(l.to); close(); }}
               />
             ))}
           </Stack>
