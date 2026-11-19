@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { isoDate } from '../format';
-import { useAccounts, useApiMutation, useCategories } from '../hooks';
+import { useAccounts, useApiMutation, useCategories, useMe } from '../hooks';
 import { COMMITMENTS, NECESSITIES, SAVINGS_TYPES, type Commitment, FREQUENCIES, type Family, type Frequency, type Loan, type Necessity, type Txn } from '../types';
 
 type Kind = 'INCOME' | 'EXPENSE' | 'SAVINGS' | 'TRANSFER';
@@ -18,12 +18,17 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
   const { t } = useTranslation();
   const { data: categories = [] } = useCategories();
   const { data: accounts = [] } = useAccounts();
+  const { data: me } = useMe();
+  const defaultFor = (k: Kind) => {
+    const id = k === 'EXPENSE' ? me?.defaultExpenseAccountId : k === 'INCOME' ? me?.defaultIncomeAccountId : k === 'SAVINGS' ? me?.defaultSavingsSourceAccountId : null;
+    return id != null ? String(id) : null;
+  };
   const [kind, setKind] = useState<Kind>(kindOf(txn));
   const [amount, setAmount] = useState<number | string>(txn?.amount ?? '');
   const [currency, setCurrency] = useState(txn?.currency ?? family.baseCurrency);
   const [fxRate, setFxRate] = useState<number | string>('');
   const [date, setDate] = useState(txn?.date ?? isoDate(new Date()));
-  const [accountId, setAccountId] = useState<string | null>(txn?.accountId?.toString() ?? null);
+  const [accountId, setAccountId] = useState<string | null>(txn ? (txn.accountId?.toString() ?? null) : defaultFor('EXPENSE'));
   const [toAccountId, setToAccountId] = useState<string | null>(txn?.toAccountId?.toString() ?? null);
   const [categoryId, setCategoryId] = useState<string | null>(txn?.categoryId?.toString() ?? null);
   const [commitment, setCommitment] = useState<Commitment>(txn?.commitment ?? 'ONE_TIME');
@@ -51,8 +56,7 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
   const savingsOptions = accounts.filter((a) => !a.archived && SAVINGS_TYPES.includes(a.type)).map((a) => ({ value: String(a.id), label: `${a.name} (${a.currency})` }));
   const hasDestination = kind === 'SAVINGS' || kind === 'TRANSFER';
 
-  const save = useApiMutation(
-    () => {
+  const submit = () => {
       const body = {
         type: kind === 'SAVINGS' ? 'TRANSFER' : kind,
         amount: Number(amount),
@@ -76,10 +80,15 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
         });
       }
       return txn ? api(`/transactions/${txn.id}`, 'PUT', body) : api('/transactions', 'POST', body);
-    },
-    ['transactions', 'dashboard', 'recurring', 'buffer', 'loans'],
-    onDone,
-  );
+  };
+  const keys = ['transactions', 'dashboard', 'recurring', 'buffer', 'loans', 'card-bills', 'savings'];
+  const save = useApiMutation(submit, keys, onDone);
+  // keeps the form open with date, account and category so several entries can be made in a row
+  const saveAnother = useApiMutation(submit, keys, () => {
+    setAmount('');
+    setNote('');
+    setFxRate('');
+  });
 
   const valid = Number(amount) > 0 && currency.length === 3 && (!hasDestination || (accountId && toAccountId));
 
@@ -88,7 +97,7 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
       <SegmentedControl
         fullWidth
         value={kind}
-        onChange={(v) => { setKind(v as Kind); setCategoryId(null); setToAccountId(null); }}
+        onChange={(v) => { setKind(v as Kind); setCategoryId(null); setToAccountId(null); if (!txn) setAccountId(defaultFor(v as Kind)); }}
         data={[
           { value: 'EXPENSE', label: t('txn.expense') },
           { value: 'INCOME', label: t('txn.income') },
@@ -146,6 +155,9 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
       <TextInput label={t('common.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
       <Group justify="flex-end">
         <Button variant="default" onClick={onDone}>{t('common.cancel')}</Button>
+        {!txn && !repeat && (
+          <Button variant="light" loading={saveAnother.isPending} disabled={!valid} onClick={() => saveAnother.mutate(undefined)}>{t('p5.saveAnother')}</Button>
+        )}
         <Button loading={save.isPending} disabled={!valid} onClick={() => save.mutate(undefined)}>{t('common.save')}</Button>
       </Group>
     </Stack>

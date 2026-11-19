@@ -16,7 +16,7 @@ class PeriodController(private val service: PeriodService, private val current: 
 
     @GetMapping("/current")
     fun current(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate?): Period =
-        PeriodCalculator.containing(date ?: LocalDate.now(), families.findById(current.familyId()).orElseThrow().cycleStartDay)
+        service.containing(families.findById(current.familyId()).orElseThrow(), date ?: LocalDate.now())
 
     /** Overrides the carried-over balance of a period with the user's actual amount. */
     @PutMapping("/{start}/opening-balance")

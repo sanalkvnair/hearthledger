@@ -32,6 +32,10 @@ data class TxnRequest(
     val importHash: String? = null,
 )
 
+data class BatchTxnRequest(
+    @field:jakarta.validation.constraints.Size(min = 1, max = 200) @field:Valid val items: List<TxnRequest>,
+)
+
 data class TxnDto(
     val id: Long, val userId: Long, val userName: String, val type: TxnType,
     val amount: BigDecimal, val currency: String, val fxRate: BigDecimal, val baseAmount: BigDecimal,
@@ -93,6 +97,10 @@ class TxnController(private val service: TxnService, private val jdbc: JdbcClien
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     fun create(@Valid @RequestBody r: TxnRequest) = service.create(r)
+
+    @PostMapping("/batch")
+    @ResponseStatus(HttpStatus.CREATED)
+    fun createBatch(@Valid @RequestBody r: BatchTxnRequest) = service.createBatch(r.items)
 
     @PutMapping("/{id}")
     fun update(@PathVariable id: Long, @Valid @RequestBody r: TxnRequest) = service.update(id, r)

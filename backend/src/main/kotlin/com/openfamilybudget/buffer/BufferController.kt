@@ -5,7 +5,6 @@ import com.openfamilybudget.common.money
 import com.openfamilybudget.currency.CurrencyService
 import com.openfamilybudget.family.CurrentUser
 import com.openfamilybudget.family.FamilyRepository
-import com.openfamilybudget.period.PeriodCalculator
 import com.openfamilybudget.recurring.RecurringRuleRepository
 import com.openfamilybudget.savings.SavingsController
 import com.openfamilybudget.txn.TxnType
@@ -33,6 +32,8 @@ data class BufferDto(
     val requirements: List<BufferRequirement>,
     /** Value of savings accounts (not FD / investments) held for this scope. */
     val liquidSavings: BigDecimal,
+    /** Closed credit card statements still to be paid; already deducted from [liquidSavings]. */
+    val cardBillsDue: BigDecimal,
     val coverageMonths: BigDecimal?,
     val shortfall: BigDecimal,
 )
@@ -45,6 +46,10 @@ class BufferController(
     private val families: FamilyRepository,
     private val currency: CurrencyService,
     private val savings: SavingsController,
+    private val periods: com.openfamilybudget.period.PeriodService,
+    private val cards: com.openfamilybudget.creditcard.CreditCardService,
+    private val loans: com.openfamilybudget.loan.LoanRepository,
+    private val loanService: com.openfamilybudget.loan.LoanService,
     private val current: CurrentUser,
 ) {
     @GetMapping
@@ -60,24 +65,26 @@ class BufferController(
             .filter { userId == null || it.userId == userId }
             .sumOf { toBase(it.amount, it.currency) * it.frequency.perMonth }
 
-        val loanMonthly = jdbc.sql(
-            """SELECT l.emi, l.currency FROM loan l WHERE l.family_id = :f AND l.active
-                 AND (SELECT count(*) FROM txn WHERE loan_id = l.id) < l.tenure_months
-                 AND (CAST(:u AS bigint) IS NULL OR l.owner_user_id = :u)""",
-        ).param("f", familyId).param("u", userId, java.sql.Types.BIGINT)
-            .query { rs, _ -> toBase(rs.getBigDecimal(1), rs.getString(2)) }.list().sumOf { it }
+        val loanMonthly = loans.findByFamilyId(familyId)
+            .filter { it.active && (userId == null || it.ownerUserId == userId) }
+            .sumOf { loan ->
+                val rows = loanService.schedule(loan, today)
+                loanService.nextMonthlyPayment(loan, rows, loan.generatedThrough)?.let { toBase(it, loan.currency) } ?: BigDecimal.ZERO
+            }
 
-        val essential = essentialAverage(familyId, family.cycleStartDay, family.bufferLookbackMonths, userId)
+        val essential = essentialAverage(family, userId)
 
         val need = (recurring + loanMonthly + essential).money()
         val months = (listOf(3, 6, family.bufferMonths)).distinct().sorted()
-        val liquid = savings.overview().accounts
-            .filter { it.type == AccountType.SAVINGS && (userId == null || it.ownerUserId == userId) }
+        val savingsTotal = savings.overview().accounts
+            .filter { it.type == AccountType.SAVINGS && (userId == null || userId in it.ownerIds) }
             .sumOf { it.currentValue }.money()
+        val cardBills = cards.unpaidTotal(familyId, userId)
+        val liquid = (savingsTotal - cardBills).money()
         val configured = need * BigDecimal(family.bufferMonths)
         return BufferDto(
             family.baseCurrency, userId, recurring.money(), loanMonthly.money(), essential, need, family.bufferMonths,
-            months.map { BufferRequirement(it, (need * BigDecimal(it)).money()) }, liquid,
+            months.map { BufferRequirement(it, (need * BigDecimal(it)).money()) }, liquid, cardBills,
             if (need.signum() > 0) liquid.divide(need, 1, RoundingMode.HALF_UP) else null,
             (configured - liquid).max(BigDecimal.ZERO).money(),
         )
@@ -87,8 +94,10 @@ class BufferController(
      * Average one-off essential spending per period over the last completed periods; periods before
      * the first recorded transaction are ignored so a new family isn't averaged down by empty history.
      */
-    private fun essentialAverage(familyId: Long, startDay: Int, lookback: Int, userId: Long?): BigDecimal {
-        var period = PeriodCalculator.previous(PeriodCalculator.containing(LocalDate.now(), startDay), startDay)
+    private fun essentialAverage(family: com.openfamilybudget.family.Family, userId: Long?): BigDecimal {
+        val familyId = family.id!!
+        val lookback = family.bufferLookbackMonths
+        var period = periods.previous(family, periods.containing(family, LocalDate.now()))
         val first = jdbc.sql("SELECT min(date) FROM txn WHERE family_id = :f").param("f", familyId).query(java.sql.Date::class.java).optional().orElse(null)
             ?.toLocalDate() ?: return BigDecimal.ZERO
         var total = BigDecimal.ZERO
@@ -103,7 +112,7 @@ class BufferController(
                 ).param("f", familyId).param("from", period.start).param("to", period.end).param("u", userId, java.sql.Types.BIGINT)
                     .query(BigDecimal::class.java).single()
             }
-            period = PeriodCalculator.previous(period, startDay)
+            period = periods.previous(family, period)
         }
         return if (counted == 0) BigDecimal.ZERO else total.divide(BigDecimal(counted), 4, RoundingMode.HALF_UP)
     }

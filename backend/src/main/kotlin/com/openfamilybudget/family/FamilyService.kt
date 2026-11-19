@@ -19,6 +19,7 @@ class FamilyService(
     private val invitations: InvitationRepository,
     private val users: com.openfamilybudget.user.AppUserRepository,
     private val events: ApplicationEventPublisher,
+    private val holidays: com.openfamilybudget.period.HolidayCalendars,
     private val current: CurrentUser,
 ) {
     private val random = SecureRandom()
@@ -38,12 +39,18 @@ class FamilyService(
     fun get(): Family = families.findById(current.familyId()).orElseThrow { notFound("Family") }
 
     @Transactional
-    fun updateSettings(name: String, cycleStartDay: Int, bufferMonths: Int, lookback: Int, llm: Boolean): Family {
+    fun updateSettings(
+        name: String, cycleStartDay: Int, bufferMonths: Int, lookback: Int, llm: Boolean,
+        adjustToBusinessDay: Boolean, holidayCountry: String,
+    ): Family {
         current.requireAdmin()
+        val country = holidayCountry.uppercase()
+        if (!holidays.isSupported(country)) throw badRequest("HOLIDAY_COUNTRY", "No public holiday calendar for $country")
         return families.save(
             get().copy(
                 name = name, cycleStartDay = cycleStartDay, bufferMonths = bufferMonths,
                 bufferLookbackMonths = lookback, llmImportEnabled = llm,
+                adjustPeriodToBusinessDay = adjustToBusinessDay, holidayCountry = country,
             ),
         )
     }

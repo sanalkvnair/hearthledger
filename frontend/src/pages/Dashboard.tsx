@@ -2,13 +2,13 @@ import { BarChart, DonutChart } from '@mantine/charts';
 import { ActionIcon, Button, Card, Group, Loader, NumberInput, Progress, SegmentedControl, SimpleGrid, Stack, Text, Title } from '@mantine/core';
 import { IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { addDays, money, shortDate } from '../format';
 import { canWrite, useApiMutation, useMe } from '../hooks';
 import { STATUS_COLOR } from './Budgets';
-import type { Buffer, BudgetProgress, CategoryTotal, Dashboard, Member } from '../types';
+import type { Buffer, BudgetProgress, CardSummary, CategoryTotal, Dashboard, Member } from '../types';
 
 const PALETTE = ['blue.6', 'teal.6', 'orange.6', 'grape.6', 'red.6', 'cyan.6', 'lime.6', 'pink.6', 'yellow.6', 'indigo.6'];
 
@@ -21,10 +21,10 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
   );
 }
 
-function CategoryDonut({ title, data, fmt, empty }: { title: string; data: CategoryTotal[]; fmt: (n: number) => string; empty: string }) {
+function CategoryDonut({ title, data, fmt, empty, action }: { title: string; data: CategoryTotal[]; fmt: (n: number) => string; empty: string; action?: ReactNode }) {
   return (
     <Card withBorder padding="md">
-      <Title order={5} mb="sm">{title}</Title>
+      <Group justify="space-between" mb="sm"><Title order={5}>{title}</Title>{action}</Group>
       {data.length === 0 ? (
         <Text c="dimmed">{empty}</Text>
       ) : (
@@ -72,9 +72,39 @@ function BufferCard() {
       </Text>
       <Text size="sm" mt={4}>
         {t('buffer.savingsHeld')}: {fmt(data.liquidSavings)}
+        {data.cardBillsDue > 0 && <Text span c="orange"> ({t('p5.cardsDue')}: {fmt(data.cardBillsDue)})</Text>}
         {data.coverageMonths != null && ` · ${t('buffer.coverage')} ${data.coverageMonths} ${t('buffer.months')}`}
         {data.shortfall > 0 && <Text span c="red"> · {t('buffer.shortfall')}: {fmt(data.shortfall)}</Text>}
       </Text>
+    </Card>
+  );
+}
+
+function CardBills() {
+  const { t, i18n } = useTranslation();
+  const { data = [] } = useQuery({ queryKey: ['card-bills'], queryFn: () => api<CardSummary[]>('/dashboard/card-bills') });
+  if (data.length === 0) return null;
+  return (
+    <Card withBorder padding="md">
+      <Title order={5} mb="sm">{t('p5.cardBills')}</Title>
+      <Stack gap="xs">
+        {data.map((c) => {
+          const fmt = (n: number) => money(n, c.currency, i18n.language);
+          return (
+            <Group key={c.accountId} justify="space-between" wrap="nowrap">
+              <div>
+                <Text fw={500}>{c.name}</Text>
+                <Text size="xs" c="dimmed">
+                  {t('p5.statement')} {fmt(c.statementAmount)} · {t('p5.due')} {shortDate(c.dueDate, i18n.language)} · {t('p5.open')}: {fmt(c.openAmount)}
+                </Text>
+              </div>
+              <Text fw={700} c={c.overdue ? 'red' : c.remaining > 0 ? undefined : 'teal'}>
+                {c.overdue && <Text span size="xs" c="red">{t('p5.overdue')} </Text>}{fmt(c.remaining)}
+              </Text>
+            </Group>
+          );
+        })}
+      </Stack>
     </Card>
   );
 }
@@ -104,9 +134,10 @@ export function DashboardPage() {
   const { data: me } = useMe();
   const [date, setDate] = useState<string | undefined>();
   const [override, setOverride] = useState<number | string>('');
+  const [method, setMethod] = useState('ALL');
   const { data, isLoading } = useQuery({
-    queryKey: ['dashboard', date],
-    queryFn: () => api<Dashboard>(`/dashboard${date ? `?date=${date}` : ''}`),
+    queryKey: ['dashboard', date, method],
+    queryFn: () => api<Dashboard>(`/dashboard?paymentMethod=${method}${date ? `&date=${date}` : ''}`),
   });
   const setOpening = useApiMutation(
     (amount: number) => api(`/periods/${data!.period.start}/opening-balance`, 'PUT', { amount }),
@@ -181,10 +212,14 @@ export function DashboardPage() {
       </Card>
 
       <BufferCard />
+      <CardBills />
       <BudgetAlerts fmt={fmt} />
 
       <SimpleGrid cols={{ base: 1, md: 2 }}>
-        <CategoryDonut title={t('dashboard.expenseBy')} data={data.expenseByCategory} fmt={fmt} empty={t('dashboard.empty')} />
+        <CategoryDonut
+          title={t('dashboard.expenseBy')} data={data.expenseByCategory} fmt={fmt} empty={t('dashboard.empty')}
+          action={<SegmentedControl size="xs" value={method} onChange={setMethod} data={['ALL', 'CARD', 'BANK', 'CASH'].map((m) => ({ value: m, label: m === 'ALL' ? t('common.all') : t(`p5.${m}`) }))} />}
+        />
         <CategoryDonut title={t('dashboard.incomeBy')} data={data.incomeByCategory} fmt={fmt} empty={t('dashboard.empty')} />
       </SimpleGrid>
     </Stack>

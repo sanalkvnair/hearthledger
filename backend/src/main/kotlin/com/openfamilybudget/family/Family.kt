@@ -16,6 +16,8 @@ data class Family(
     val bufferMonths: Int = 3,
     val bufferLookbackMonths: Int = 3,
     val llmImportEnabled: Boolean = false,
+    val adjustPeriodToBusinessDay: Boolean = false,
+    val holidayCountry: String = "SE",
     val createdAt: Instant = Instant.now(),
 )
 

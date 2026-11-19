@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
-import { isAdmin, useApiMutation, useMe } from '../hooks';
+import { isAdmin, useAccounts, useApiMutation, useMe } from '../hooks';
 import { ROLES, type ExchangeRate, type Invitation, type Member, type Role } from '../types';
 import i18n from '../i18n';
 
@@ -17,8 +17,10 @@ function Settings() {
   const [buffer, setBuffer] = useState<number | string>(f.bufferMonths);
   const [lookback, setLookback] = useState<number | string>(f.bufferLookbackMonths);
   const [llm, setLlm] = useState(f.llmImportEnabled);
+  const [adjust, setAdjust] = useState(f.adjustPeriodToBusinessDay);
+  const [country, setCountry] = useState(f.holidayCountry);
   const save = useApiMutation(
-    () => api('/family', 'PUT', { name, cycleStartDay: Number(day), bufferMonths: Number(buffer), bufferLookbackMonths: Number(lookback), llmImportEnabled: llm }),
+    () => api('/family', 'PUT', { name, cycleStartDay: Number(day), bufferMonths: Number(buffer), bufferLookbackMonths: Number(lookback), llmImportEnabled: llm, adjustPeriodToBusinessDay: adjust, holidayCountry: country }),
     ['me', 'dashboard', 'period', 'transactions'],
   );
   return (
@@ -26,12 +28,40 @@ function Settings() {
       <Stack>
         <TextInput label={t('common.name')} value={name} onChange={(e) => setName(e.currentTarget.value)} disabled={!admin} />
         <NumberInput label={t('onboarding.cycleStartDay')} description={t('family.cycleHint')} min={1} max={31} value={day} onChange={setDay} disabled={!admin} />
+        <Switch label={t('p5.adjustBusiness')} checked={adjust} onChange={(e) => setAdjust(e.currentTarget.checked)} disabled={!admin} />
+        {adjust && <TextInput label={t('p5.holidayCountry')} maxLength={2} value={country} onChange={(e) => setCountry(e.currentTarget.value.toUpperCase())} disabled={!admin} />}
         <Group grow>
           <NumberInput label={t('family.bufferMonths')} min={1} max={24} value={buffer} onChange={setBuffer} disabled={!admin} />
           <NumberInput label={t('family.lookback')} min={1} max={24} value={lookback} onChange={setLookback} disabled={!admin} />
         </Group>
         <Switch label="AI-assisted PDF import" checked={llm} onChange={(e) => setLlm(e.currentTarget.checked)} disabled={!admin} />
         {admin && <Button loading={save.isPending} onClick={() => save.mutate(undefined)}>{t('common.save')}</Button>}
+      </Stack>
+    </Card>
+  );
+}
+
+function DefaultAccounts() {
+  const { t } = useTranslation();
+  const { data: me } = useMe();
+  const { data: accounts = [] } = useAccounts();
+  const [expense, setExpense] = useState<string | null>(me?.defaultExpenseAccountId?.toString() ?? null);
+  const [income, setIncome] = useState<string | null>(me?.defaultIncomeAccountId?.toString() ?? null);
+  const [savings, setSavings] = useState<string | null>(me?.defaultSavingsSourceAccountId?.toString() ?? null);
+  const options = accounts.filter((a) => !a.archived).map((a) => ({ value: String(a.id), label: `${a.name} (${a.currency})` }));
+  const num = (v: string | null) => (v ? Number(v) : null);
+  const save = useApiMutation(
+    () => api('/me/default-accounts', 'PUT', { expenseAccountId: num(expense), incomeAccountId: num(income), savingsSourceAccountId: num(savings) }),
+    ['me'],
+  );
+  return (
+    <Card withBorder maw={500}>
+      <Stack>
+        <Title order={5}>{t('p5.defaults')}</Title>
+        <Select label={t('p5.defExpense')} data={options} value={expense} onChange={setExpense} clearable searchable />
+        <Select label={t('p5.defIncome')} data={options} value={income} onChange={setIncome} clearable searchable />
+        <Select label={t('p5.defSavings')} data={options} value={savings} onChange={setSavings} clearable searchable />
+        <Button loading={save.isPending} onClick={() => save.mutate(undefined)}>{t('common.save')}</Button>
       </Stack>
     </Card>
   );
@@ -157,7 +187,7 @@ export function FamilyPage() {
         <Tabs.Panel value="settings"><Settings /></Tabs.Panel>
         <Tabs.Panel value="members"><Members /></Tabs.Panel>
         <Tabs.Panel value="rates"><Rates /></Tabs.Panel>
-        <Tabs.Panel value="prefs"><Preferences /></Tabs.Panel>
+        <Tabs.Panel value="prefs"><Stack><Preferences /><DefaultAccounts /></Stack></Tabs.Panel>
       </Tabs>
     </Stack>
   );

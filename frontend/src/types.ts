@@ -18,6 +18,8 @@ export interface Family {
   bufferMonths: number;
   bufferLookbackMonths: number;
   llmImportEnabled: boolean;
+  adjustPeriodToBusinessDay: boolean;
+  holidayCountry: string;
 }
 
 export interface Me {
@@ -29,6 +31,9 @@ export interface Me {
   theme: 'light' | 'dark' | 'auto';
   role: Role | null;
   family: Family | null;
+  defaultExpenseAccountId: number | null;
+  defaultIncomeAccountId: number | null;
+  defaultSavingsSourceAccountId: number | null;
 }
 
 export interface Member {
@@ -55,9 +60,17 @@ export interface Category {
   archived: boolean;
 }
 
+export type Ownership = 'PRIVATE' | 'JOINT' | 'FAMILY';
+export const OWNERSHIPS: Ownership[] = ['PRIVATE', 'JOINT', 'FAMILY'];
+export type LoanType = 'ANNUITY' | 'FIXED_AMORTIZATION' | 'INTEREST_ONLY' | 'BALLOON_ANNUITY';
+export const LOAN_TYPES: LoanType[] = ['ANNUITY', 'FIXED_AMORTIZATION', 'INTEREST_ONLY', 'BALLOON_ANNUITY'];
+
 export interface Account {
   id: number;
-  ownerUserId: number | null;
+  ownership: Ownership;
+  ownerIds: number[];
+  statementDay: number | null;
+  dueDay: number | null;
   name: string;
   type: AccountType;
   currency: string;
@@ -87,6 +100,8 @@ export interface Txn {
   note: string | null;
   loanId: number | null;
   recurringRuleId: number | null;
+  loanInterestPart?: number | null;
+  loanPrincipalPart?: number | null;
 }
 
 export interface TxnPage {
@@ -148,6 +163,12 @@ export interface RecurringRule {
   active: boolean;
 }
 
+export interface RateChange {
+  id: number;
+  effectiveFrom: string;
+  annualRate: number;
+}
+
 export interface Loan {
   id: number;
   name: string;
@@ -155,16 +176,40 @@ export interface Loan {
   currency: string;
   principal: number;
   interestRate: number;
-  tenureMonths: number;
+  tenureMonths: number | null;
   emi: number;
   startDate: string;
-  endDate: string;
+  endDate: string | null;
   term: 'SHORT_TERM' | 'LONG_TERM';
+  loanType: LoanType;
+  amortizationRate: number | null;
+  balloonAmount: number;
+  downPayment: number;
+  setupFee: number;
+  monthlyFee: number;
+  openingBalance: number | null;
+  effectiveRate: number | null;
   ownerUserId: number | null;
   paidInstalments: number;
-  remainingInstalments: number;
+  remainingInstalments: number | null;
   remainingBalance: number;
+  nextPayment: number | null;
   active: boolean;
+  rates: RateChange[];
+}
+
+export interface LoanPreview {
+  financed: number;
+  firstPayment: number;
+  lastPayment: number;
+  payments: number;
+  totalInterest: number;
+  totalFees: number;
+  totalCost: number;
+  balloon: number;
+  effectiveRate: number | null;
+  openEnded: boolean;
+  firstRows: ScheduleRow[];
 }
 
 export interface ScheduleRow {
@@ -173,7 +218,43 @@ export interface ScheduleRow {
   payment: number;
   interest: number;
   principal: number;
+  fee: number;
   balance: number;
+}
+
+export interface CardSummary {
+  accountId: number;
+  name: string;
+  currency: string;
+  statementDay: number;
+  dueDay: number;
+  openFrom: string;
+  openAmount: number;
+  statementFrom: string;
+  statementClosedOn: string;
+  statementAmount: number;
+  dueDate: string;
+  paid: number;
+  remaining: number;
+  overdue: boolean;
+  daysToDue: number;
+}
+
+export interface Valuation {
+  id: number;
+  valuedOn: string;
+  marketValue: number;
+  invested: number;
+  profitLoss: number;
+  profitLossPercent: number | null;
+  note: string | null;
+}
+
+export interface HistoryPoint {
+  date: string;
+  invested: number;
+  value: number;
+  profitLoss: number;
 }
 
 export interface SavingsAccount {
@@ -182,8 +263,9 @@ export interface SavingsAccount {
   type: AccountType;
   currency: string;
   institution: string | null;
-  ownerUserId: number | null;
-  ownerName: string | null;
+  ownership: Ownership;
+  ownerIds: number[];
+  ownerNames: string[];
   contributed: number;
   currentValue: number;
   gain: number;
@@ -201,6 +283,10 @@ export interface SavingsOverview {
   byMember: { userId: number | null; name: string | null; contributed: number; currentValue: number }[];
   totalContributed: number;
   totalValue: number;
+  sharedContributed: number;
+  sharedValue: number;
+  individualContributed: number;
+  individualValue: number;
 }
 
 export interface BudgetProgress {
@@ -219,6 +305,7 @@ export interface Buffer {
   userId: number | null;
   recurringMonthly: number;
   loanMonthly: number;
+  cardBillsDue: number;
   essentialMonthlyAverage: number;
   monthlyNeed: number;
   configuredMonths: number;

@@ -5,7 +5,6 @@ import com.openfamilybudget.common.money
 import com.openfamilybudget.common.notFound
 import com.openfamilybudget.family.CurrentUser
 import com.openfamilybudget.family.FamilyRepository
-import com.openfamilybudget.period.PeriodCalculator
 import jakarta.validation.Valid
 import jakarta.validation.constraints.DecimalMin
 import org.springframework.format.annotation.DateTimeFormat
@@ -30,13 +29,14 @@ class BudgetController(
     private val jdbc: JdbcClient,
     private val categories: CategoryRepository,
     private val families: FamilyRepository,
+    private val periods: com.openfamilybudget.period.PeriodService,
     private val current: CurrentUser,
 ) {
     /** Budgets are monthly limits in the base currency; a parent category's limit includes its subcategories. */
     @GetMapping
     fun progress(@RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) date: LocalDate?): List<BudgetProgress> {
         val familyId = current.familyId()
-        val period = PeriodCalculator.containing(date ?: LocalDate.now(), families.findById(familyId).orElseThrow().cycleStartDay)
+        val period = periods.containing(families.findById(familyId).orElseThrow(), date ?: LocalDate.now())
         return jdbc.sql(
             """SELECT b.id, b.category_id, c.name, b.amount,
                  COALESCE((SELECT sum(t.base_amount) FROM txn t JOIN category tc ON tc.id = t.category_id

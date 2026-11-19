@@ -15,13 +15,15 @@ import jakarta.validation.Valid
 data class FamilyDto(
     val id: Long, val name: String, val baseCurrency: String, val cycleStartDay: Int,
     val bufferMonths: Int, val bufferLookbackMonths: Int, val llmImportEnabled: Boolean,
+    val adjustPeriodToBusinessDay: Boolean, val holidayCountry: String,
 )
 
-fun Family.toDto() = FamilyDto(id!!, name, baseCurrency, cycleStartDay, bufferMonths, bufferLookbackMonths, llmImportEnabled)
+fun Family.toDto() = FamilyDto(id!!, name, baseCurrency, cycleStartDay, bufferMonths, bufferLookbackMonths, llmImportEnabled, adjustPeriodToBusinessDay, holidayCountry.trim())
 
 data class MeDto(
     val userId: Long, val email: String, val name: String, val avatarUrl: String?,
     val locale: String, val theme: String, val role: Role?, val family: FamilyDto?,
+    val defaultExpenseAccountId: Long?, val defaultIncomeAccountId: Long?, val defaultSavingsSourceAccountId: Long?,
 )
 
 data class CreateFamilyRequest(
@@ -36,7 +38,11 @@ data class UpdateFamilyRequest(
     @field:Min(1) @field:Max(24) val bufferMonths: Int,
     @field:Min(1) @field:Max(24) val bufferLookbackMonths: Int,
     val llmImportEnabled: Boolean,
+    val adjustPeriodToBusinessDay: Boolean = false,
+    @field:Pattern(regexp = "[A-Za-z]{2}") val holidayCountry: String = "SE",
 )
+
+data class DefaultAccountsRequest(val expenseAccountId: Long? = null, val incomeAccountId: Long? = null, val savingsSourceAccountId: Long? = null)
 
 data class PreferencesRequest(@field:Pattern(regexp = "en|sv") val locale: String, @field:Pattern(regexp = "light|dark|auto") val theme: String)
 data class InviteRequest(val email: String? = null, val role: Role = Role.MEMBER)
@@ -52,6 +58,7 @@ class FamilyController(
     private val current: CurrentUser,
     private val users: AppUserRepository,
     private val families: FamilyRepository,
+    private val accounts: com.openfamilybudget.account.AccountRepository,
     private val jdbc: JdbcClient,
 ) {
     @GetMapping("/me")
@@ -59,13 +66,28 @@ class FamilyController(
         val user = users.findById(current.userId()).orElseThrow()
         val membership = current.membershipOrNull()
         val family = membership?.let { families.findById(it.familyId).orElseThrow().toDto() }
-        return MeDto(user.id!!, user.email, user.name, user.avatarUrl, user.locale, user.theme, membership?.role, family)
+        return MeDto(user.id!!, user.email, user.name, user.avatarUrl, user.locale, user.theme, membership?.role, family,
+            user.defaultExpenseAccountId, user.defaultIncomeAccountId, user.defaultSavingsSourceAccountId)
     }
 
     @PutMapping("/me/preferences")
     fun preferences(@Valid @RequestBody r: PreferencesRequest) {
         val user = users.findById(current.userId()).orElseThrow()
         users.save(user.copy(locale = r.locale, theme = r.theme))
+    }
+
+    @PutMapping("/me/default-accounts")
+    fun defaultAccounts(@Valid @RequestBody r: DefaultAccountsRequest) {
+        val familyId = current.familyId()
+        listOfNotNull(r.expenseAccountId, r.incomeAccountId, r.savingsSourceAccountId).forEach {
+            accounts.findByIdAndFamilyId(it, familyId) ?: throw com.openfamilybudget.common.notFound("Account")
+        }
+        users.save(
+            users.findById(current.userId()).orElseThrow().copy(
+                defaultExpenseAccountId = r.expenseAccountId, defaultIncomeAccountId = r.incomeAccountId,
+                defaultSavingsSourceAccountId = r.savingsSourceAccountId,
+            ),
+        )
     }
 
     @PostMapping("/families")
@@ -77,7 +99,7 @@ class FamilyController(
 
     @PutMapping("/family")
     fun update(@Valid @RequestBody r: UpdateFamilyRequest) =
-        service.updateSettings(r.name, r.cycleStartDay, r.bufferMonths, r.bufferLookbackMonths, r.llmImportEnabled).toDto()
+        service.updateSettings(r.name, r.cycleStartDay, r.bufferMonths, r.bufferLookbackMonths, r.llmImportEnabled, r.adjustPeriodToBusinessDay, r.holidayCountry).toDto()
 
     @GetMapping("/family/members")
     fun members(): List<MemberDto> =

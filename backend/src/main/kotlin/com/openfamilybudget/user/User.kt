@@ -14,6 +14,9 @@ data class AppUser(
     val googleSub: String,
     val locale: String = "en",
     val theme: String = "auto",
+    val defaultExpenseAccountId: Long? = null,
+    val defaultIncomeAccountId: Long? = null,
+    val defaultSavingsSourceAccountId: Long? = null,
     val createdAt: Instant = Instant.now(),
 )
 

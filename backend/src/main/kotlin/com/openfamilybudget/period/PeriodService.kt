@@ -1,6 +1,7 @@
 package com.openfamilybudget.period
 
 import com.openfamilybudget.common.money
+import com.openfamilybudget.family.Family
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Service
 import java.math.BigDecimal
@@ -15,7 +16,15 @@ data class OpeningBalance(val computed: BigDecimal, val adjusted: BigDecimal?) {
 }
 
 @Service
-class PeriodService(private val jdbc: JdbcClient) {
+class PeriodService(private val jdbc: JdbcClient, private val holidays: HolidayCalendars) {
+
+    private fun calendar(family: Family): BusinessCalendar? =
+        if (family.adjustPeriodToBusinessDay) holidays.forCountry(family.holidayCountry.trim()) else null
+
+    fun containing(family: Family, date: LocalDate): Period = PeriodCalculator.containing(date, family.cycleStartDay, calendar(family))
+
+    fun previous(family: Family, period: Period): Period = PeriodCalculator.previous(period, family.cycleStartDay, calendar(family))
+
 
     private val savingsTypes = "('SAVINGS','FIXED_DEPOSIT','INVESTMENT')"
 

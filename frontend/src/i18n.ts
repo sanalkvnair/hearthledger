@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 const en = {
   appName: 'Open Family Budget',
-  nav: { dashboard: 'Dashboard', transactions: 'Transactions', accounts: 'Accounts', savings: 'Savings', import: 'Import / Export', loans: 'Loans & EMI', budgets: 'Budgets', recurring: 'Recurring', categories: 'Categories', family: 'Family & settings', audit: 'Audit log' },
+  nav: { bulk: 'Bulk entry', dashboard: 'Dashboard', transactions: 'Transactions', accounts: 'Accounts', savings: 'Savings', import: 'Import / Export', loans: 'Loans & EMI', budgets: 'Budgets', recurring: 'Recurring', categories: 'Categories', family: 'Family & settings', audit: 'Audit log' },
   common: { save: 'Save', cancel: 'Cancel', add: 'Add', edit: 'Edit', delete: 'Delete', name: 'Name', amount: 'Amount', currency: 'Currency', date: 'Date', note: 'Note', type: 'Type', actions: 'Actions', all: 'All', none: 'None', logout: 'Log out', copy: 'Copy', loading: 'Loading…', previous: 'Previous', next: 'Next', today: 'Today' },
   login: { title: 'Manage your family finances together', google: 'Sign in with Google' },
   onboarding: { title: 'Welcome! Set up your family', create: 'Create a family', join: 'Join with an invitation code', familyName: 'Family name', baseCurrency: 'Base currency (e.g. EUR)', cycleStartDay: 'Month starts on day', code: 'Invitation code', joinBtn: 'Join family' },
@@ -22,12 +22,23 @@ const en = {
   budgets: { title: 'Budgets', limit: 'Monthly limit', spent: 'Spent', left: 'Left', set: 'Set budget', hint: 'A limit on a parent category includes its subcategories.' },
   buffer: { title: 'Safety buffer', need: 'Monthly need', months: 'months', recurring: 'Recurring costs', emi: 'Loan EMIs', essential: 'Avg. essential spending', savingsHeld: 'Savings held', coverage: 'Covers', shortfall: 'Shortfall', scope: 'Scope', family: 'Family' },
   imp: { title: 'Import & export', source: 'Bank statement (CSV or PDF)', account: 'Import into account', file: 'File', next: 'Next', back: 'Back', template: 'Saved mapping', saveTemplate: 'Save mapping as', delimiter: 'Delimiter', dateCol: 'Date column', dateFormat: 'Date format', descCol: 'Description column', amountCol: 'Amount column (signed)', debitCol: 'Debit column', creditCol: 'Credit column', decimal: 'Decimal separator', invert: 'Invert sign', preview: 'Preview', importBtn: 'Import selected', duplicate: 'Possible duplicate', imported: 'Imported entries', pdfHint: 'PDF is read by an AI model (must be enabled in Family settings). Account numbers are masked first. Check every row.', rules: 'Auto-categorisation rules', keyword: 'Keyword in description', exportTitle: 'Export', exportCsv: 'Download CSV', exportXlsx: 'Download Excel', from: 'From', to: 'To', skipped: 'Rows with problems' },
+  p5: {
+    adjustBusiness: 'Start period on previous business day if the start day is a weekend or holiday', holidayCountry: 'Holiday country (ISO code, e.g. SE)',
+    defaults: 'My default accounts', defExpense: 'Default expense account', defIncome: 'Default income account', defSavings: 'Default savings source account',
+    saveAnother: 'Save & add another', bulk: 'Bulk entry', bulkHint: 'Enter several transactions at once. All rows are saved together or not at all.', addRow: 'Add row', saveAll: 'Save all', rowError: 'Row {{row}}: {{message}}', saved: 'Saved {{count}} entries',
+    ownership: 'Ownership', PRIVATE: 'Private', JOINT: 'Joint', FAMILY: 'Whole family', owners: 'Owners', statementDay: 'Statement day', dueDay: 'Payment due day', cardHint: 'Statement and due days are never moved for weekends.',
+    cardBills: 'Upcoming card bills', statement: 'Statement', due: 'Due', open: 'Not yet billed', remaining: 'Remaining', overdue: 'Overdue', cardsDue: 'Unpaid card bills', paymentMethod: 'Payment method', BANK: 'Bank', CARD: 'Card', CASH: 'Cash',
+    shared: 'Shared', individual: 'Individual', valuations: 'Valuations', addValuation: 'Add valuation', marketValue: 'Market value', profitLoss: 'Profit / loss', invested: 'Invested', valueLabel: 'Value', orEnter: 'Enter either market value or profit/loss', history: 'Invested vs value',
+    loanType: 'Loan type', ANNUITY: 'Annuity (fixed payment)', FIXED_AMORTIZATION: 'Fixed amortization + interest', INTEREST_ONLY: 'Interest only', BALLOON_ANNUITY: 'Annuity with balloon (residual)',
+    amortRate: 'Amortization % of original principal per year', balloon: 'Balloon / residual value', downPayment: 'Down payment', setupFee: 'Setup fee', monthlyFee: 'Monthly fee', openingBalance: 'Outstanding balance (if loan is already running)',
+    effective: 'Effective rate', nextPayment: 'Next payment', financed: 'Financed', totalInterest: 'Total interest', totalFees: 'Total fees', totalCost: 'Total cost', preview: 'Preview', rateChanges: 'Rate changes', effectiveFrom: 'Effective from', newRate: 'New rate %', principalPart: 'Principal', fee: 'Fee', openEnded: 'Open-ended', cycleLabel: 'Period',
+  },
   roles: { OWNER: 'Owner', ADMIN: 'Admin', MEMBER: 'Member', VIEWER: 'Viewer' },
 };
 
 const sv: typeof en = {
   appName: 'Open Family Budget',
-  nav: { dashboard: 'Översikt', transactions: 'Transaktioner', accounts: 'Konton', savings: 'Sparande', import: 'Import / Export', loans: 'Lån & avbetalningar', budgets: 'Budgetar', recurring: 'Återkommande', categories: 'Kategorier', family: 'Familj & inställningar', audit: 'Granskningslogg' },
+  nav: { bulk: 'Massinmatning', dashboard: 'Översikt', transactions: 'Transaktioner', accounts: 'Konton', savings: 'Sparande', import: 'Import / Export', loans: 'Lån & avbetalningar', budgets: 'Budgetar', recurring: 'Återkommande', categories: 'Kategorier', family: 'Familj & inställningar', audit: 'Granskningslogg' },
   common: { save: 'Spara', cancel: 'Avbryt', add: 'Lägg till', edit: 'Redigera', delete: 'Ta bort', name: 'Namn', amount: 'Belopp', currency: 'Valuta', date: 'Datum', note: 'Anteckning', type: 'Typ', actions: 'Åtgärder', all: 'Alla', none: 'Ingen', logout: 'Logga ut', copy: 'Kopiera', loading: 'Laddar…', previous: 'Föregående', next: 'Nästa', today: 'Idag' },
   login: { title: 'Hantera familjens ekonomi tillsammans', google: 'Logga in med Google' },
   onboarding: { title: 'Välkommen! Ställ in din familj', create: 'Skapa en familj', join: 'Gå med via inbjudningskod', familyName: 'Familjens namn', baseCurrency: 'Basvaluta (t.ex. SEK)', cycleStartDay: 'Månaden börjar dag', code: 'Inbjudningskod', joinBtn: 'Gå med i familjen' },
@@ -46,6 +57,17 @@ const sv: typeof en = {
   budgets: { title: 'Budgetar', limit: 'Månadsgräns', spent: 'Spenderat', left: 'Kvar', set: 'Sätt budget', hint: 'En gräns på en överkategori inkluderar dess underkategorier.' },
   buffer: { title: 'Säkerhetsbuffert', need: 'Månadsbehov', months: 'månader', recurring: 'Återkommande kostnader', emi: 'Lånebetalningar', essential: 'Snitt nödvändiga utgifter', savingsHeld: 'Sparande', coverage: 'Räcker i', shortfall: 'Underskott', scope: 'Omfattning', family: 'Familj' },
   imp: { title: 'Import & export', source: 'Kontoutdrag (CSV eller PDF)', account: 'Importera till konto', file: 'Fil', next: 'Nästa', back: 'Tillbaka', template: 'Sparad mappning', saveTemplate: 'Spara mappning som', delimiter: 'Avgränsare', dateCol: 'Datumkolumn', dateFormat: 'Datumformat', descCol: 'Beskrivningskolumn', amountCol: 'Beloppskolumn (med tecken)', debitCol: 'Debetkolumn', creditCol: 'Kreditkolumn', decimal: 'Decimaltecken', invert: 'Vänd tecken', preview: 'Förhandsgranska', importBtn: 'Importera markerade', duplicate: 'Möjlig dubblett', imported: 'Importerade poster', pdfHint: 'PDF läses av en AI-modell (måste aktiveras i Familjeinställningar). Kontonummer maskas först. Kontrollera varje rad.', rules: 'Regler för automatisk kategorisering', keyword: 'Nyckelord i beskrivning', exportTitle: 'Exportera', exportCsv: 'Ladda ner CSV', exportXlsx: 'Ladda ner Excel', from: 'Från', to: 'Till', skipped: 'Rader med problem' },
+  p5: {
+    adjustBusiness: 'Starta perioden på föregående bankdag om startdagen är helg eller helgdag', holidayCountry: 'Land för helgdagar (ISO-kod, t.ex. SE)',
+    defaults: 'Mina standardkonton', defExpense: 'Standardkonto för utgifter', defIncome: 'Standardkonto för inkomster', defSavings: 'Standardkonto för sparande (från)',
+    saveAnother: 'Spara & lägg till fler', bulk: 'Massinmatning', bulkHint: 'Ange flera transaktioner samtidigt. Alla rader sparas tillsammans eller inte alls.', addRow: 'Lägg till rad', saveAll: 'Spara alla', rowError: 'Rad {{row}}: {{message}}', saved: 'Sparade {{count}} poster',
+    ownership: 'Ägande', PRIVATE: 'Privat', JOINT: 'Gemensamt', FAMILY: 'Hela familjen', owners: 'Ägare', statementDay: 'Fakturadag', dueDay: 'Förfallodag', cardHint: 'Faktura- och förfallodag flyttas aldrig för helger.',
+    cardBills: 'Kommande kortfakturor', statement: 'Faktura', due: 'Förfaller', open: 'Ännu ej fakturerat', remaining: 'Kvar att betala', overdue: 'Försenad', cardsDue: 'Obetalda kortfakturor', paymentMethod: 'Betalsätt', BANK: 'Bank', CARD: 'Kort', CASH: 'Kontanter',
+    shared: 'Gemensamt', individual: 'Individuellt', valuations: 'Värderingar', addValuation: 'Lägg till värdering', marketValue: 'Marknadsvärde', profitLoss: 'Vinst / förlust', invested: 'Insatt', valueLabel: 'Värde', orEnter: 'Ange antingen marknadsvärde eller vinst/förlust', history: 'Insatt mot värde',
+    loanType: 'Lånetyp', ANNUITY: 'Annuitet (fast betalning)', FIXED_AMORTIZATION: 'Fast amortering + ränta', INTEREST_ONLY: 'Endast ränta', BALLOON_ANNUITY: 'Annuitet med restvärde',
+    amortRate: 'Amortering % av ursprungligt lån per år', balloon: 'Restvärde', downPayment: 'Kontantinsats', setupFee: 'Uppläggningsavgift', monthlyFee: 'Månadsavgift', openingBalance: 'Kvarvarande skuld (om lånet redan löper)',
+    effective: 'Effektiv ränta', nextPayment: 'Nästa betalning', financed: 'Finansierat', totalInterest: 'Total ränta', totalFees: 'Totala avgifter', totalCost: 'Total kostnad', preview: 'Förhandsgranska', rateChanges: 'Ränteändringar', effectiveFrom: 'Gäller från', newRate: 'Ny ränta %', principalPart: 'Amortering', fee: 'Avgift', openEnded: 'Tillsvidare', cycleLabel: 'Period',
+  },
   roles: { OWNER: 'Ägare', ADMIN: 'Admin', MEMBER: 'Medlem', VIEWER: 'Läsare' },
 };
 

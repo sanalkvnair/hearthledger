@@ -35,6 +35,8 @@ dependencies {
 	implementation("org.springframework.modulith:spring-modulith-starter-core")
 	implementation("org.apache.pdfbox:pdfbox:3.0.4")
 	implementation("org.apache.poi:poi-ooxml:5.4.0")
+	implementation("de.focus-shift:jollyday-core:1.5.2")
+	runtimeOnly("de.focus-shift:jollyday-jackson:1.5.2")
 	implementation("tools.jackson.module:jackson-module-kotlin")
 	runtimeOnly("org.postgresql:postgresql")
 	testImplementation("org.springframework.boot:spring-boot-starter-actuator-test")

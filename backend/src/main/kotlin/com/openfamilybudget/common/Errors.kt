@@ -6,7 +6,7 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
-class ApiException(val status: HttpStatus, val code: String, message: String) : RuntimeException(message)
+class ApiException(val status: HttpStatus, val code: String, message: String, val details: Any? = null) : RuntimeException(message)
 
 fun notFound(what: String) = ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "$what not found")
 fun forbidden(msg: String = "Insufficient permissions") = ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", msg)
@@ -16,7 +16,10 @@ fun badRequest(code: String, msg: String) = ApiException(HttpStatus.UNPROCESSABL
 class ApiExceptionHandler {
     @ExceptionHandler(ApiException::class)
     fun handle(e: ApiException): ProblemDetail =
-        ProblemDetail.forStatusAndDetail(e.status, e.message).apply { setProperty("code", e.code) }
+        ProblemDetail.forStatusAndDetail(e.status, e.message).apply {
+            setProperty("code", e.code)
+            if (e.details != null) setProperty("errors", e.details)
+        }
 
     @ExceptionHandler(MethodArgumentNotValidException::class)
     fun handle(e: MethodArgumentNotValidException): ProblemDetail =

@@ -31,6 +31,9 @@ data class Txn(
     val loanId: Long? = null,
     val recurringRuleId: Long? = null,
     val importHash: String? = null,
+    val loanInterestPart: BigDecimal? = null,
+    val loanPrincipalPart: BigDecimal? = null,
+    val loanScheduleNo: Int? = null,
     val createdAt: Instant = Instant.now(),
 )
 

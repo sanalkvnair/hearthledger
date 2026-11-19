@@ -29,11 +29,33 @@ class TxnService(
         return repo.save(build(null, m.familyId, m.userId, r))
     }
 
+    /** Creates all rows or none: if any row is invalid nothing is saved and every row error is reported. */
+    @Transactional
+    fun createBatch(items: List<TxnRequest>): List<Txn> {
+        val m = current.requireWriter()
+        val errors = mutableListOf<Map<String, Any>>()
+        val built = items.mapIndexedNotNull { i, r ->
+            try {
+                build(null, m.familyId, m.userId, r)
+            } catch (e: com.openfamilybudget.common.ApiException) {
+                errors += mapOf("row" to i, "code" to e.code, "message" to (e.message ?: ""))
+                null
+            }
+        }
+        if (errors.isNotEmpty()) {
+            throw com.openfamilybudget.common.ApiException(
+                org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY, "BATCH_INVALID",
+                "${errors.size} of ${items.size} rows are invalid", errors,
+            )
+        }
+        return repo.saveAll(built).toList()
+    }
+
     @Transactional
     fun update(id: Long, r: TxnRequest): Txn {
         val m = current.requireWriter()
         val existing = repo.findByIdAndFamilyId(id, m.familyId) ?: throw notFound("Transaction")
-        return repo.save(build(existing.id, m.familyId, existing.userId, r).copy(createdAt = existing.createdAt, recurringRuleId = existing.recurringRuleId, importHash = existing.importHash))
+        return repo.save(build(existing.id, m.familyId, existing.userId, r).copy(createdAt = existing.createdAt, recurringRuleId = existing.recurringRuleId, importHash = existing.importHash, loanInterestPart = existing.loanInterestPart, loanPrincipalPart = existing.loanPrincipalPart, loanScheduleNo = existing.loanScheduleNo))
     }
 
     @Transactional

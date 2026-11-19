@@ -1,5 +1,5 @@
 import { AppShell, Avatar, Button, Center, Group, Loader, NavLink, Stack, Text, Title, useMantineColorScheme } from '@mantine/core';
-import { IconBuildingBank, IconCalendarRepeat, IconCategory, IconChartPie, IconFileImport, IconHistory, IconPigMoney, IconReceipt, IconReportMoney, IconTargetArrow, IconUsers } from '@tabler/icons-react';
+import { IconBuildingBank, IconCalendarRepeat, IconCategory, IconChartPie, IconFileImport, IconHistory, IconPigMoney, IconReceipt, IconTableImport, IconReportMoney, IconTargetArrow, IconUsers } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -8,6 +8,7 @@ import { api } from './api';
 import { isAdmin, useMe } from './hooks';
 import { AuditPage } from './pages/Audit';
 import { AccountsPage } from './pages/Accounts';
+import { BulkEntryPage } from './pages/BulkEntry';
 import { BudgetsPage } from './pages/Budgets';
 import { CategoriesPage } from './pages/Categories';
 import { DashboardPage } from './pages/Dashboard';
@@ -52,6 +53,7 @@ function Shell() {
   const links = [
     { to: '/', label: t('nav.dashboard'), icon: IconChartPie },
     { to: '/transactions', label: t('nav.transactions'), icon: IconReceipt },
+    { to: '/bulk', label: t('nav.bulk'), icon: IconTableImport },
     { to: '/recurring', label: t('nav.recurring'), icon: IconCalendarRepeat },
     { to: '/accounts', label: t('nav.accounts'), icon: IconBuildingBank },
     { to: '/savings', label: t('nav.savings'), icon: IconPigMoney },
@@ -98,6 +100,7 @@ function Shell() {
         <Routes>
           <Route path="/" element={<DashboardPage />} />
           <Route path="/transactions" element={<TransactionsPage />} />
+          <Route path="/bulk" element={<BulkEntryPage />} />
           <Route path="/recurring" element={<RecurringPage />} />
           <Route path="/savings" element={<SavingsPage />} />
           <Route path="/loans" element={<LoansPage />} />
