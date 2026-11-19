@@ -13,6 +13,10 @@ cp .env.example .env   # add Google OAuth credentials + a long random JWT_SECRET
 docker compose up --build
 ```
 
+If you get `unknown flag: --build`, your Docker has no Compose v2 plugin. Use the standalone
+binary instead (`docker-compose up --build`) or install the plugin (`brew install docker-compose`
+and follow its note about `cliPluginsExtraDirs`, or install Docker Desktop).
+
 Open http://localhost:8081. In Google Cloud Console create an OAuth client with redirect URI
 `http://localhost:8081/login/oauth2/code/google`. Set `COOKIE_SECURE=true` behind HTTPS.
 
