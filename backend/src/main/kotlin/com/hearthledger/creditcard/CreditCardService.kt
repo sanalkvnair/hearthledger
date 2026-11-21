@@ -52,7 +52,7 @@ class CreditCardService(private val jdbc: JdbcClient, private val accounts: Acco
 
     private fun spend(accountId: Long, from: LocalDate, to: LocalDate): BigDecimal =
         jdbc.sql(
-            """SELECT COALESCE(sum(CASE WHEN type = 'EXPENSE' THEN base_amount WHEN type = 'INCOME' THEN -base_amount ELSE 0 END), 0)
+            """SELECT COALESCE(sum(CASE WHEN type = 'EXPENSE' THEN base_amount WHEN type IN ('INCOME', 'REFUND') THEN -base_amount ELSE 0 END), 0)
                FROM txn WHERE account_id = :a AND date BETWEEN :from AND :to""",
         ).param("a", accountId).param("from", from).param("to", to).query(BigDecimal::class.java).single()
 

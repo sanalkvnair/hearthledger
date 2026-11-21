@@ -1,6 +1,8 @@
 package com.hearthledger.period
 
+import com.hearthledger.common.expenseDelta
 import com.hearthledger.common.money
+import com.hearthledger.common.reportIncluded
 import com.hearthledger.family.Family
 import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.stereotype.Service
@@ -36,7 +38,7 @@ class PeriodService(private val jdbc: JdbcClient, private val holidays: HolidayC
         val sql = """
             SELECT
               COALESCE(sum(t.base_amount) FILTER (WHERE t.type = 'INCOME'), 0) AS income,
-              COALESCE(sum(t.base_amount) FILTER (WHERE t.type = 'EXPENSE'), 0) AS expense,
+              COALESCE(sum(${expenseDelta()}), 0) AS expense,
               COALESCE(sum(t.base_amount) FILTER (WHERE t.type = 'TRANSFER' AND ta.type IN $savingsTypes
                                                    AND COALESCE(a.type, '') NOT IN $savingsTypes), 0)
               - COALESCE(sum(t.base_amount) FILTER (WHERE t.type = 'TRANSFER' AND a.type IN $savingsTypes
@@ -44,7 +46,7 @@ class PeriodService(private val jdbc: JdbcClient, private val holidays: HolidayC
             FROM txn t
             LEFT JOIN account a ON a.id = t.account_id
             LEFT JOIN account ta ON ta.id = t.to_account_id
-            WHERE t.family_id = :f AND (CAST(:from AS date) IS NULL OR t.date >= :from) AND (CAST(:to AS date) IS NULL OR t.date <= :to)
+            WHERE t.family_id = :f AND ${reportIncluded()} AND (CAST(:from AS date) IS NULL OR t.date >= :from) AND (CAST(:to AS date) IS NULL OR t.date <= :to)
         """
         return jdbc.sql(sql).param("f", familyId).param("from", from, java.sql.Types.DATE).param("to", to, java.sql.Types.DATE)
             .query { rs, _ -> Totals(rs.getBigDecimal("income").money(), rs.getBigDecimal("expense").money(), rs.getBigDecimal("savings").money()) }

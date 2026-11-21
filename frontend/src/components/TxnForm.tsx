@@ -1,13 +1,13 @@
-import { Button, Group, NumberInput, SegmentedControl, Select, Stack, TextInput } from '@mantine/core';
+import { Button, Checkbox, Group, NumberInput, SegmentedControl, Select, Stack, TextInput } from '@mantine/core';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { api } from '../api';
 import { isoDate } from '../format';
 import { useAccounts, useApiMutation, useCategories, useMe } from '../hooks';
-import { COMMITMENTS, NECESSITIES, SAVINGS_TYPES, type Commitment, FREQUENCIES, type Family, type Frequency, type Loan, type Necessity, type Txn } from '../types';
+import { COMMITMENTS, NECESSITIES, SAVINGS_TYPES, type Commitment, FREQUENCIES, type Family, type Frequency, type Loan, type Necessity, type Txn, type TxnPage } from '../types';
 
-type Kind = 'INCOME' | 'EXPENSE' | 'SAVINGS' | 'TRANSFER';
+type Kind = 'INCOME' | 'EXPENSE' | 'SAVINGS' | 'TRANSFER' | 'REFUND';
 
 const kindOf = (t?: Txn): Kind => {
   if (!t) return 'EXPENSE';
@@ -20,7 +20,7 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
   const { data: accounts = [] } = useAccounts();
   const { data: me } = useMe();
   const defaultFor = (k: Kind) => {
-    const id = k === 'EXPENSE' ? me?.defaultExpenseAccountId : k === 'INCOME' ? me?.defaultIncomeAccountId : k === 'SAVINGS' ? me?.defaultSavingsSourceAccountId : null;
+    const id = k === 'EXPENSE' ? me?.defaultExpenseAccountId : k === 'INCOME' || k === 'REFUND' ? me?.defaultIncomeAccountId : k === 'SAVINGS' ? me?.defaultSavingsSourceAccountId : null;
     return id != null ? String(id) : null;
   };
   const [kind, setKind] = useState<Kind>(kindOf(txn));
@@ -35,13 +35,22 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
   const [necessity, setNecessity] = useState<Necessity | null>(txn?.necessity ?? null);
   const [note, setNote] = useState(txn?.note ?? '');
   const [loanId, setLoanId] = useState<string | null>(txn?.loanId?.toString() ?? null);
+  const [excluded, setExcluded] = useState(txn?.excluded ?? false);
+  const [refundOf, setRefundOf] = useState<string | null>(txn?.refundOfTxnId?.toString() ?? null);
   const [repeat, setRepeat] = useState<string | null>(null);
   const [endDate, setEndDate] = useState('');
   const { data: loans = [] } = useQuery({ queryKey: ['loans'], queryFn: () => api<Loan[]>('/loans') });
+  const { data: expenses } = useQuery({
+    queryKey: ['transactions', 'refund-candidates'],
+    queryFn: () => api<TxnPage>('/transactions?type=EXPENSE&size=200'),
+    enabled: kind === 'REFUND',
+  });
   const isLoan = commitment === 'SHORT_TERM_LOAN' || commitment === 'LONG_TERM_LOAN';
   const canRepeat = !txn && (kind === 'EXPENSE' || kind === 'INCOME');
 
   const catType = kind === 'INCOME' ? 'INCOME' : 'EXPENSE';
+  const selectedCategory = categories.find((c) => String(c.id) === categoryId);
+  const categoryExcluded = !!selectedCategory && (selectedCategory.excludeFromReports || !!categories.find((c) => c.id === selectedCategory.parentId)?.excludeFromReports);
   const categoryOptions = useMemo(() => {
     const active = categories.filter((c) => c.type === catType && !c.archived);
     return active
@@ -67,9 +76,11 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
         toAccountId: hasDestination && toAccountId ? Number(toAccountId) : null,
         categoryId: !hasDestination && categoryId ? Number(categoryId) : null,
         commitment: kind === 'EXPENSE' ? commitment : null,
-        necessity: kind === 'EXPENSE' ? necessity : null,
+        necessity: kind === 'EXPENSE' || kind === 'REFUND' ? necessity : null,
         note: note || null,
         loanId: kind === 'EXPENSE' && isLoan && loanId ? Number(loanId) : null,
+        excluded,
+        refundOfTxnId: kind === 'REFUND' && refundOf ? Number(refundOf) : null,
       };
       if (canRepeat && repeat) {
         return api('/recurring-rules', 'POST', {
@@ -97,10 +108,11 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
       <SegmentedControl
         fullWidth
         value={kind}
-        onChange={(v) => { setKind(v as Kind); setCategoryId(null); setToAccountId(null); if (!txn) setAccountId(defaultFor(v as Kind)); }}
+        onChange={(v) => { setKind(v as Kind); setCategoryId(null); setRefundOf(null); setToAccountId(null); if (!txn) setAccountId(defaultFor(v as Kind)); }}
         data={[
           { value: 'EXPENSE', label: t('txn.expense') },
           { value: 'INCOME', label: t('txn.income') },
+          { value: 'REFUND', label: t('txn.refund') },
           { value: 'SAVINGS', label: t('txn.savingsKind') },
           { value: 'TRANSFER', label: t('txn.transfer') },
         ]}
@@ -113,13 +125,33 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
       {currency !== family.baseCurrency && (
         <NumberInput label={`${t('txn.fxRate')} ${currency}→${family.baseCurrency}`} value={fxRate} onChange={setFxRate} min={0} decimalScale={6} />
       )}
-      <Select label={hasDestination ? t('txn.from') : t('txn.account')} data={accountOptions} value={accountId} onChange={setAccountId} clearable searchable />
+      <Select label={hasDestination ? t('txn.from') : kind === 'REFUND' ? t('txn.receivedInto') : t('txn.account')} data={accountOptions} value={accountId} onChange={setAccountId} clearable searchable />
       {hasDestination && (
         <Select
           label={kind === 'SAVINGS' ? t('txn.toSavings') : t('txn.to')}
           data={kind === 'SAVINGS' ? savingsOptions : accountOptions.filter((a) => a.value !== accountId)}
           value={toAccountId}
           onChange={setToAccountId}
+          searchable
+        />
+      )}
+      {kind === 'REFUND' && (
+        <Select
+          label={t('txn.refundOf')}
+          description={t('txn.refundOfHint')}
+          placeholder={t('txn.refundOfNone')}
+          data={(expenses?.items ?? []).map((x) => ({ value: String(x.id), label: `${x.date} · ${x.categoryName ?? '—'} · ${x.baseAmount} ${family.baseCurrency}${x.note ? ` · ${x.note}` : ''}` }))}
+          value={refundOf}
+          onChange={(v) => {
+            setRefundOf(v);
+            const original = expenses?.items.find((x) => String(x.id) === v);
+            if (original) {
+              setCategoryId(original.categoryId?.toString() ?? null);
+              setNecessity(original.necessity);
+              if (!txn) setCurrency(family.baseCurrency);
+            }
+          }}
+          clearable
           searchable
         />
       )}
@@ -131,15 +163,15 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
           onChange={(v) => {
             setCategoryId(v);
             const def = categories.find((c) => String(c.id) === v)?.defaultNecessity;
-            if (kind === 'EXPENSE' && def) setNecessity(def);
+            if ((kind === 'EXPENSE' || kind === 'REFUND') && def) setNecessity(def);
           }}
           clearable
           searchable
         />
       )}
-      {kind === 'EXPENSE' && (
+      {(kind === 'EXPENSE' || kind === 'REFUND') && (
         <Group grow>
-          <Select label={t('txn.commitment')} data={COMMITMENTS.map((c) => ({ value: c, label: t(`commitment.${c}`) }))} value={commitment} onChange={(v) => setCommitment(v as Commitment)} allowDeselect={false} />
+          {kind === 'EXPENSE' && <Select label={t('txn.commitment')} data={COMMITMENTS.map((c) => ({ value: c, label: t(`commitment.${c}`) }))} value={commitment} onChange={(v) => setCommitment(v as Commitment)} allowDeselect={false} />}
           <Select label={t('txn.necessity')} data={NECESSITIES.map((n) => ({ value: n, label: t(`necessity.${n}`) }))} value={necessity} onChange={(v) => setNecessity(v as Necessity | null)} clearable />
         </Group>
       )}
@@ -153,6 +185,15 @@ export function TxnForm({ family, txn, onDone }: { family: Family; txn?: Txn; on
         </Group>
       )}
       <TextInput label={t('common.note')} value={note} onChange={(e) => setNote(e.currentTarget.value)} />
+      {kind !== 'TRANSFER' && kind !== 'SAVINGS' && (
+        <Checkbox
+          label={t('txn.excludeLabel')}
+          description={categoryExcluded ? t('txn.excludeCategoryHint') : t('txn.excludeHint')}
+          checked={excluded || categoryExcluded}
+          disabled={categoryExcluded}
+          onChange={(e) => setExcluded(e.currentTarget.checked)}
+        />
+      )}
       <Group justify="flex-end">
         <Button variant="default" onClick={onDone}>{t('common.cancel')}</Button>
         {!txn && !repeat && (

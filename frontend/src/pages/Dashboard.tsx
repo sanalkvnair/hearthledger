@@ -22,6 +22,8 @@ function Stat({ label, value, color }: { label: string; value: string; color?: s
 }
 
 function CategoryDonut({ title, data, fmt, empty, action }: { title: string; data: CategoryTotal[]; fmt: (n: number) => string; empty: string; action?: ReactNode }) {
+  // categories with more refunds than spending net below zero and cannot be drawn
+  data = data.filter((c) => c.amount > 0);
   return (
     <Card withBorder padding="md">
       <Group justify="space-between" mb="sm"><Title order={5}>{title}</Title>{action}</Group>

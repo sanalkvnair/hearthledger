@@ -18,11 +18,11 @@ import java.time.LocalDate
 @RestController
 @RequestMapping("/api/v1/export")
 class ExportController(private val jdbc: JdbcClient, private val current: CurrentUser) {
-    private val header = listOf("Date", "Type", "Amount", "Currency", "Base amount", "Account", "To account", "Category", "Commitment", "Necessity", "Member", "Note")
+    private val header = listOf("Date", "Type", "Amount", "Currency", "Base amount", "Account", "To account", "Category", "Commitment", "Necessity", "Member", "Note", "Excluded")
 
     private fun rows(from: LocalDate?, to: LocalDate?): List<List<Any?>> =
         jdbc.sql(
-            """SELECT t.date, t.type, t.amount, t.currency, t.base_amount, a.name, ta.name, c.name, t.commitment, t.necessity, u.name, t.note
+            """SELECT t.date, t.type, t.amount, t.currency, t.base_amount, a.name, ta.name, c.name, t.commitment, t.necessity, u.name, t.note, t.excluded
                FROM txn t JOIN app_user u ON u.id = t.user_id
                LEFT JOIN account a ON a.id = t.account_id LEFT JOIN account ta ON ta.id = t.to_account_id
                LEFT JOIN category c ON c.id = t.category_id
@@ -31,7 +31,7 @@ class ExportController(private val jdbc: JdbcClient, private val current: Curren
         ).param("f", current.familyId()).param("from", from).param("to", to).query { rs, _ ->
             listOf<Any?>(
                 rs.getDate(1).toLocalDate().toString(), rs.getString(2), rs.getBigDecimal(3), rs.getString(4), rs.getBigDecimal(5),
-                rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12),
+                rs.getString(6), rs.getString(7), rs.getString(8), rs.getString(9), rs.getString(10), rs.getString(11), rs.getString(12), if (rs.getBoolean(13)) "yes" else "",
             )
         }.list()
 

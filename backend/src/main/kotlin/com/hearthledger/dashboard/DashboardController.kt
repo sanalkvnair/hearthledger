@@ -1,6 +1,7 @@
 package com.hearthledger.dashboard
 
 import com.hearthledger.common.money
+import com.hearthledger.common.reportIncluded
 import com.hearthledger.family.CurrentUser
 import com.hearthledger.family.FamilyRepository
 import com.hearthledger.period.Period
@@ -81,13 +82,13 @@ class DashboardController(
             else -> null
         }
         return jdbc.sql(
-            """SELECT COALESCE(parent.id, c.id) AS id, COALESCE(parent.name, c.name, 'Uncategorized') AS name, sum(t.base_amount) AS amount
+            """SELECT COALESCE(parent.id, c.id) AS id, COALESCE(parent.name, c.name, 'Uncategorized') AS name, sum(CASE WHEN t.type = 'REFUND' THEN -t.base_amount ELSE t.base_amount END) AS amount
                FROM txn t LEFT JOIN category c ON c.id = t.category_id LEFT JOIN category parent ON parent.id = c.parent_id
                LEFT JOIN account acc ON acc.id = t.account_id
-               WHERE t.family_id = :f AND t.type = :type AND t.date BETWEEN :from AND :to
+               WHERE t.family_id = :f AND ${reportIncluded()} AND t.type IN (:type, :refundType) AND t.date BETWEEN :from AND :to
                  AND (CAST(:acct AS text) IS NULL OR acc.type = :acct)
-               GROUP BY 1, 2 ORDER BY amount DESC""",
-        ).param("f", familyId).param("type", type).param("from", p.start).param("to", p.end).param("acct", accountType, java.sql.Types.VARCHAR)
+               GROUP BY 1, 2 HAVING sum(CASE WHEN t.type = 'REFUND' THEN -t.base_amount ELSE t.base_amount END) <> 0 ORDER BY amount DESC""",
+        ).param("f", familyId).param("type", type).param("refundType", if (type == "EXPENSE") "REFUND" else type).param("from", p.start).param("to", p.end).param("acct", accountType, java.sql.Types.VARCHAR)
             .query { rs, _ -> CategoryTotal(rs.getObject("id") as Long?, rs.getString("name"), rs.getBigDecimal("amount").money()) }.list()
     }
 }

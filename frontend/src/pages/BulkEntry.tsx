@@ -1,4 +1,4 @@
-import { ActionIcon, Alert, Button, Group, NumberInput, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
+import { ActionIcon, Alert, Button, Checkbox, Group, NumberInput, Select, Stack, Table, Text, TextInput, Title } from '@mantine/core';
 import { notifications } from '@mantine/notifications';
 import { IconPlus, IconTrash } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -9,7 +9,8 @@ import { isoDate } from '../format';
 import { canWrite, useAccounts, useCategories, useMe } from '../hooks';
 
 interface Row {
-  type: 'EXPENSE' | 'INCOME';
+  type: 'EXPENSE' | 'INCOME' | 'REFUND';
+  excluded: boolean;
   date: string;
   amount: number | string;
   accountId: string | null;
@@ -25,14 +26,14 @@ export function BulkEntryPage() {
   const qc = useQueryClient();
   const currency = me!.family!.baseCurrency;
   const defaultAccount = me?.defaultExpenseAccountId != null ? String(me.defaultExpenseAccountId) : null;
-  const blank = (prev?: Row): Row => ({ type: prev?.type ?? 'EXPENSE', date: prev?.date ?? isoDate(new Date()), amount: '', accountId: prev?.accountId ?? defaultAccount, categoryId: null, note: '' });
+  const blank = (prev?: Row): Row => ({ type: prev?.type ?? 'EXPENSE', date: prev?.date ?? isoDate(new Date()), amount: '', accountId: prev?.accountId ?? defaultAccount, categoryId: null, note: '', excluded: false });
   const [rows, setRows] = useState<Row[]>([blank(), blank(), blank()]);
   const [errors, setErrors] = useState<Record<number, string>>({});
   const [busy, setBusy] = useState(false);
 
   const accountOptions = accounts.filter((a) => !a.archived).map((a) => ({ value: String(a.id), label: `${a.name} (${a.currency})` }));
   const categoryOptions = useMemo(
-    () => (type: Row['type']) => categories.filter((c) => c.type === type && !c.archived).map((c) => ({ value: String(c.id), label: c.name })),
+    () => (type: Row['type']) => categories.filter((c) => c.type === (type === 'INCOME' ? 'INCOME' : 'EXPENSE') && !c.archived).map((c) => ({ value: String(c.id), label: c.name })),
     [categories],
   );
   const accountCurrency = (id: string | null) => accounts.find((a) => String(a.id) === id)?.currency ?? currency;
@@ -52,7 +53,7 @@ export function BulkEntryPage() {
           return {
             type: r.type, amount: Number(r.amount), currency: accountCurrency(r.accountId), date: r.date,
             accountId: r.accountId ? Number(r.accountId) : null, categoryId: r.categoryId ? Number(r.categoryId) : null, note: r.note || null,
-            commitment: r.type === 'EXPENSE' ? 'ONE_TIME' : null,
+            commitment: r.type === 'EXPENSE' ? 'ONE_TIME' : null, excluded: r.excluded,
           };
         }),
       });
@@ -87,13 +88,14 @@ export function BulkEntryPage() {
               <Table.Tr key={i} bg={errors[i] ? 'var(--mantine-color-red-light)' : undefined}>
                 <Table.Td w={120}>
                   <Select size="xs" allowDeselect={false} value={r.type} onChange={(v) => update(i, { type: v as Row['type'], categoryId: null })}
-                    data={[{ value: 'EXPENSE', label: t('txn.expense') }, { value: 'INCOME', label: t('txn.income') }]} />
+                    data={[{ value: 'EXPENSE', label: t('txn.expense') }, { value: 'INCOME', label: t('txn.income') }, { value: 'REFUND', label: t('txn.refund') }]} />
                 </Table.Td>
                 <Table.Td w={150}><TextInput size="xs" type="date" value={r.date} onChange={(e) => update(i, { date: e.currentTarget.value })} /></Table.Td>
                 <Table.Td w={120}><NumberInput size="xs" min={0} decimalScale={2} value={r.amount} onChange={(v) => update(i, { amount: v })} /></Table.Td>
                 <Table.Td><Select size="xs" searchable clearable data={accountOptions} value={r.accountId} onChange={(v) => update(i, { accountId: v })} /></Table.Td>
                 <Table.Td><Select size="xs" searchable clearable data={categoryOptions(r.type)} value={r.categoryId} onChange={(v) => update(i, { categoryId: v })} /></Table.Td>
                 <Table.Td><TextInput size="xs" placeholder={t('common.note')} value={r.note} onChange={(e) => update(i, { note: e.currentTarget.value })} /></Table.Td>
+                <Table.Td w={60}><Checkbox size="xs" aria-label={t('txn.excludeLabel')} title={t('txn.excludeLabel')} checked={r.excluded} onChange={(e) => update(i, { excluded: e.currentTarget.checked })} /></Table.Td>
                 <Table.Td w={40}>
                   <ActionIcon variant="subtle" color="red" aria-label={t('common.delete')} onClick={() => setRows((rs) => rs.filter((_, j) => j !== i))}><IconTrash size={14} /></ActionIcon>
                 </Table.Td>

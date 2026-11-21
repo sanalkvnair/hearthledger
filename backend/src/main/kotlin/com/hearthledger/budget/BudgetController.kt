@@ -1,7 +1,9 @@
 package com.hearthledger.budget
 
 import com.hearthledger.category.CategoryRepository
+import com.hearthledger.common.expenseDelta
 import com.hearthledger.common.money
+import com.hearthledger.common.reportIncluded
 import com.hearthledger.common.notFound
 import com.hearthledger.family.CurrentUser
 import com.hearthledger.family.FamilyRepository
@@ -39,8 +41,8 @@ class BudgetController(
         val period = periods.containing(families.findById(familyId).orElseThrow(), date ?: LocalDate.now())
         return jdbc.sql(
             """SELECT b.id, b.category_id, c.name, b.amount,
-                 COALESCE((SELECT sum(t.base_amount) FROM txn t JOIN category tc ON tc.id = t.category_id
-                           WHERE t.family_id = b.family_id AND t.type = 'EXPENSE' AND t.date BETWEEN :from AND :to
+                 COALESCE((SELECT sum(${expenseDelta()}) FROM txn t JOIN category tc ON tc.id = t.category_id
+                           WHERE t.family_id = b.family_id AND ${reportIncluded()} AND t.type IN ('EXPENSE', 'REFUND') AND t.date BETWEEN :from AND :to
                              AND (tc.id = b.category_id OR tc.parent_id = b.category_id)), 0) AS spent
                FROM budget b JOIN category c ON c.id = b.category_id WHERE b.family_id = :f ORDER BY c.name""",
         ).param("f", familyId).param("from", period.start).param("to", period.end).query { rs, _ ->

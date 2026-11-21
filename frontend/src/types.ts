@@ -1,5 +1,5 @@
 export type Role = 'OWNER' | 'ADMIN' | 'MEMBER' | 'VIEWER';
-export type TxnType = 'INCOME' | 'EXPENSE' | 'TRANSFER';
+export type TxnType = 'INCOME' | 'EXPENSE' | 'TRANSFER' | 'REFUND';
 export type Necessity = 'ESSENTIAL' | 'IMPORTANT' | 'DISCRETIONARY';
 export type Commitment = 'ONE_TIME' | 'RECURRING' | 'SHORT_TERM_LOAN' | 'LONG_TERM_LOAN';
 export type AccountType = 'BANK' | 'CASH' | 'CREDIT_CARD' | 'SAVINGS' | 'FIXED_DEPOSIT' | 'INVESTMENT' | 'LOAN';
@@ -58,6 +58,7 @@ export interface Category {
   name: string;
   defaultNecessity: Necessity | null;
   archived: boolean;
+  excludeFromReports: boolean;
 }
 
 export type Ownership = 'PRIVATE' | 'JOINT' | 'FAMILY';
@@ -102,6 +103,10 @@ export interface Txn {
   recurringRuleId: number | null;
   loanInterestPart?: number | null;
   loanPrincipalPart?: number | null;
+  excluded: boolean;
+  effectivelyExcluded: boolean;
+  refundOfTxnId: number | null;
+  refundedAmount: number | null;
 }
 
 export interface TxnPage {
@@ -331,7 +336,7 @@ export interface ImportRow {
   date: string;
   description: string;
   amount: number;
-  type: 'INCOME' | 'EXPENSE';
+  type: 'INCOME' | 'EXPENSE' | 'REFUND';
   categoryId: number | null;
   necessity: Necessity | null;
   commitment: Commitment | null;

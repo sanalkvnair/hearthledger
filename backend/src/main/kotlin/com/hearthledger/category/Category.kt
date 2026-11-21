@@ -18,6 +18,7 @@ data class Category(
     val color: String? = null,
     val defaultNecessity: Necessity? = null,
     val archived: Boolean = false,
+    val excludeFromReports: Boolean = false,
 )
 
 interface CategoryRepository : CrudRepository<Category, Long> {

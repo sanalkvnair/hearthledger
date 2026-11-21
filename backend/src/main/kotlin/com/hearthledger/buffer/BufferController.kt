@@ -1,7 +1,9 @@
 package com.hearthledger.buffer
 
 import com.hearthledger.account.AccountType
+import com.hearthledger.common.expenseDelta
 import com.hearthledger.common.money
+import com.hearthledger.common.reportIncluded
 import com.hearthledger.currency.CurrencyService
 import com.hearthledger.family.CurrentUser
 import com.hearthledger.family.FamilyRepository
@@ -106,9 +108,9 @@ class BufferController(
             if (!period.end.isBefore(first)) {
                 counted++
                 total += jdbc.sql(
-                    """SELECT COALESCE(sum(base_amount), 0) FROM txn WHERE family_id = :f AND type = 'EXPENSE' AND necessity = 'ESSENTIAL'
-                         AND recurring_rule_id IS NULL AND loan_id IS NULL AND date BETWEEN :from AND :to
-                         AND (CAST(:u AS bigint) IS NULL OR user_id = :u)""",
+                    """SELECT COALESCE(sum(${expenseDelta()}), 0) FROM txn t WHERE t.family_id = :f AND ${reportIncluded()} AND t.type IN ('EXPENSE', 'REFUND') AND t.necessity = 'ESSENTIAL'
+                         AND t.recurring_rule_id IS NULL AND t.loan_id IS NULL AND t.date BETWEEN :from AND :to
+                         AND (CAST(:u AS bigint) IS NULL OR t.user_id = :u)""",
                 ).param("f", familyId).param("from", period.start).param("to", period.end).param("u", userId, java.sql.Types.BIGINT)
                     .query(BigDecimal::class.java).single()
             }

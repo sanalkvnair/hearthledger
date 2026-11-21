@@ -2,6 +2,7 @@ package com.hearthledger.txn
 
 import com.hearthledger.common.Commitment
 import com.hearthledger.common.Necessity
+import com.hearthledger.common.reportIncluded
 import com.hearthledger.family.CurrentUser
 import jakarta.validation.Valid
 import jakarta.validation.constraints.DecimalMin
@@ -30,6 +31,10 @@ data class TxnRequest(
     val loanId: Long? = null,
     /** Set by the importer for duplicate detection. */
     val importHash: String? = null,
+    /** Left out of dashboard, budgets and other reports; still counts for account balances. */
+    val excluded: Boolean = false,
+    /** For refunds: the expense being refunded (optional). */
+    val refundOfTxnId: Long? = null,
 )
 
 data class BatchTxnRequest(
@@ -42,6 +47,7 @@ data class TxnDto(
     val date: LocalDate, val accountId: Long?, val accountName: String?, val toAccountId: Long?, val toAccountName: String?,
     val categoryId: Long?, val categoryName: String?, val commitment: Commitment?, val necessity: Necessity?, val note: String?,
     val loanId: Long?, val recurringRuleId: Long?,
+    val excluded: Boolean, val effectivelyExcluded: Boolean, val refundOfTxnId: Long?, val refundedAmount: BigDecimal?,
 )
 
 data class TxnPage(val items: List<TxnDto>, val total: Long, val page: Int, val size: Int)
@@ -58,6 +64,7 @@ class TxnController(private val service: TxnService, private val jdbc: JdbcClien
         @RequestParam(required = false) categoryId: Long?,
         @RequestParam(required = false) accountId: Long?,
         @RequestParam(required = false) userId: Long?,
+        @RequestParam(required = false) excluded: Boolean?,
         @RequestParam(defaultValue = "0") page: Int,
         @RequestParam(defaultValue = "50") size: Int,
     ): TxnPage {
@@ -71,6 +78,7 @@ class TxnController(private val service: TxnService, private val jdbc: JdbcClien
         filter(categoryId, "cat", "(t.category_id = :cat OR c.parent_id = :cat)")
         filter(accountId, "acc", "(t.account_id = :acc OR t.to_account_id = :acc)")
         filter(userId, "user", "t.user_id = :user")
+        if (excluded != null) where.append(if (excluded) " AND NOT ${reportIncluded("t")}" else " AND ${reportIncluded("t")}")
 
         val limit = size.coerceIn(1, 200)
         val from_ = """FROM txn t JOIN app_user u ON u.id = t.user_id
@@ -78,7 +86,9 @@ class TxnController(private val service: TxnService, private val jdbc: JdbcClien
             LEFT JOIN account ta ON ta.id = t.to_account_id WHERE $where"""
         val total = jdbc.sql("SELECT count(*) $from_").params(params).query(Long::class.java).single()
         val items = jdbc.sql(
-            """SELECT t.*, u.name AS user_name, c.name AS category_name, a.name AS account_name, ta.name AS to_account_name
+            """SELECT t.*, ${reportIncluded("t")} AS included,
+                 (SELECT sum(r.base_amount) FROM txn r WHERE r.refund_of_txn_id = t.id) AS refunded_base,
+                 u.name AS user_name, c.name AS category_name, a.name AS account_name, ta.name AS to_account_name
                $from_ ORDER BY t.date DESC, t.id DESC LIMIT :limit OFFSET :offset""",
         ).params(params).param("limit", limit).param("offset", page.coerceAtLeast(0) * limit).query { rs, _ ->
             TxnDto(
@@ -89,6 +99,7 @@ class TxnController(private val service: TxnService, private val jdbc: JdbcClien
                 rs.getObject("category_id") as Long?, rs.getString("category_name"),
                 rs.getString("commitment")?.let(Commitment::valueOf), rs.getString("necessity")?.let(Necessity::valueOf), rs.getString("note"),
                 rs.getObject("loan_id") as Long?, rs.getObject("recurring_rule_id") as Long?,
+                rs.getBoolean("excluded"), !rs.getBoolean("included"), rs.getObject("refund_of_txn_id") as Long?, rs.getBigDecimal("refunded_base"),
             )
         }.list()
         return TxnPage(items, total, page, limit)

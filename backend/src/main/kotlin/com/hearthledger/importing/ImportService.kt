@@ -113,13 +113,13 @@ class ImportService(
         val m = current.requireWriter()
         val account = accounts.findByIdAndFamilyId(accountId, m.familyId) ?: throw notFound("Account")
         rows.forEach { r ->
-            val raw = RawRow(r.date, r.description, r.amount, r.type)
+            val raw = RawRow(r.date, r.description, r.amount, if (r.type == TxnType.REFUND) TxnType.INCOME else r.type)
             txns.create(
                 TxnRequest(
                     type = r.type, amount = r.amount, currency = account.currency, date = r.date, accountId = accountId,
                     categoryId = r.categoryId,
                     commitment = if (r.type == TxnType.EXPENSE) r.commitment else null,
-                    necessity = if (r.type == TxnType.EXPENSE) r.necessity else null,
+                    necessity = if (r.type == TxnType.EXPENSE || r.type == TxnType.REFUND) r.necessity else null,
                     note = r.description.ifBlank { null }, importHash = hash(raw),
                 ),
             )

@@ -100,7 +100,7 @@ class SavingsController(
             if (until != null && f.date.isAfter(until)) continue
             if (f.toAccountId == accountId) sum += f.base
             if (f.accountId == accountId) {
-                if (f.type == "INCOME") sum += f.base else if (f.type == "TRANSFER" || f.type == "EXPENSE") sum -= f.base
+                if (f.type == "INCOME" || f.type == "REFUND") sum += f.base else if (f.type == "TRANSFER" || f.type == "EXPENSE") sum -= f.base
             }
         }
         return sum

@@ -21,6 +21,7 @@ class TxnService(
     private val families: FamilyRepository,
     private val loans: com.hearthledger.loan.LoanRepository,
     private val currency: CurrencyService,
+    private val jdbc: org.springframework.jdbc.core.simple.JdbcClient,
     private val current: CurrentUser,
 ) {
     @Transactional
@@ -78,12 +79,19 @@ class TxnService(
 
         if (r.loanId != null) loans.findByIdAndFamilyId(r.loanId, familyId) ?: throw notFound("Loan")
 
-        var necessity = if (r.type == TxnType.EXPENSE) r.necessity else null
+        if (r.type == TxnType.REFUND) {
+            if (r.accountId == null) throw badRequest("REFUND_ACCOUNT", "Choose the account that received the refund")
+            if (r.commitment != null || r.loanId != null) throw badRequest("REFUND_FIELDS", "Refunds cannot have a commitment or loan")
+        } else if (r.refundOfTxnId != null) {
+            throw badRequest("REFUND_OF", "Only refunds can refer to an original expense")
+        }
+        val isExpenseLike = r.type == TxnType.EXPENSE || r.type == TxnType.REFUND
+        var necessity = if (isExpenseLike) r.necessity else null
         if (r.categoryId != null) {
             val cat = categories.findByIdAndFamilyId(r.categoryId, familyId) ?: throw notFound("Category")
             val expected = when (r.type) {
                 TxnType.INCOME -> CategoryType.INCOME
-                TxnType.EXPENSE -> CategoryType.EXPENSE
+                TxnType.EXPENSE, TxnType.REFUND -> CategoryType.EXPENSE
                 TxnType.TRANSFER -> throw badRequest("CATEGORY", "Transfers cannot have a category")
             }
             if (cat.type != expected) throw badRequest("CATEGORY", "Category type does not match transaction type")
@@ -91,12 +99,23 @@ class TxnService(
         }
 
         val rate = (r.fxRate ?: currency.rateToBase(familyId, family.baseCurrency, r.currency, r.date)).setScale(8, java.math.RoundingMode.HALF_UP)
+        val baseAmount = (r.amount * rate).money()
+        if (r.refundOfTxnId != null) checkRefundOf(id, familyId, r.refundOfTxnId, baseAmount)
         return Txn(
             id = id, familyId = familyId, userId = userId, type = r.type, amount = r.amount.money(),
-            currency = r.currency.uppercase(), fxRate = rate, baseAmount = (r.amount * rate).money(), date = r.date,
+            currency = r.currency.uppercase(), fxRate = rate, baseAmount = baseAmount, date = r.date,
             accountId = r.accountId, toAccountId = r.toAccountId, categoryId = r.categoryId,
             commitment = if (r.type == TxnType.EXPENSE) r.commitment ?: Commitment.ONE_TIME else null,
             necessity = necessity, note = r.note, importHash = r.importHash, loanId = if (r.type == TxnType.EXPENSE) r.loanId else null,
+            excluded = r.excluded, refundOfTxnId = r.refundOfTxnId,
         )
+    }
+
+    /** The refunded entry must be an expense of this family and total refunds may not exceed it. */
+    private fun checkRefundOf(selfId: Long?, familyId: Long, originalId: Long, baseAmount: java.math.BigDecimal) {
+        val original = repo.findByIdAndFamilyId(originalId, familyId)?.takeIf { it.type == TxnType.EXPENSE } ?: throw notFound("Original expense")
+        val others = jdbc.sql("SELECT COALESCE(sum(base_amount), 0) FROM txn WHERE refund_of_txn_id = :o AND (CAST(:self AS bigint) IS NULL OR id <> :self)")
+            .param("o", originalId).param("self", selfId, java.sql.Types.BIGINT).query(java.math.BigDecimal::class.java).single()
+        if (others + baseAmount > original.baseAmount) throw badRequest("REFUND_EXCEEDS", "Refunds exceed the original expense")
     }
 }

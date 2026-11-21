@@ -9,7 +9,7 @@ import { addDays, money, shortDate } from '../format';
 import { canWrite, useApiMutation, useMe } from '../hooks';
 import type { Period, Txn, TxnPage, TxnType } from '../types';
 
-const TYPE_COLOR: Record<TxnType, string> = { INCOME: 'teal', EXPENSE: 'red', TRANSFER: 'blue' };
+const TYPE_COLOR: Record<TxnType, string> = { INCOME: 'teal', EXPENSE: 'red', TRANSFER: 'blue', REFUND: 'lime' };
 
 export function TransactionsPage() {
   const { t, i18n } = useTranslation();
@@ -17,6 +17,7 @@ export function TransactionsPage() {
   const family = me!.family!;
   const [date, setDate] = useState<string | undefined>();
   const [type, setType] = useState<string | null>(null);
+  const [excludedFilter, setExcludedFilter] = useState<string | null>(null);
   const [page, setPage] = useState(0);
   const [editing, setEditing] = useState<Txn | 'new' | null>(null);
 
@@ -25,11 +26,12 @@ export function TransactionsPage() {
     queryFn: () => api<Period>(`/periods/current${date ? `?date=${date}` : ''}`),
   });
   const { data } = useQuery({
-    queryKey: ['transactions', period?.start, type, page],
+    queryKey: ['transactions', period?.start, type, excludedFilter, page],
     enabled: !!period,
     queryFn: () => {
       const q = new URLSearchParams({ from: period!.start, to: period!.end, page: String(page) });
       if (type) q.set('type', type);
+      if (excludedFilter) q.set('excluded', excludedFilter);
       return api<TxnPage>(`/transactions?${q}`);
     },
   });
@@ -52,10 +54,18 @@ export function TransactionsPage() {
         <Select
           placeholder={t('common.type')}
           clearable
-          data={[{ value: 'INCOME', label: t('txn.income') }, { value: 'EXPENSE', label: t('txn.expense') }, { value: 'TRANSFER', label: t('txn.transfer') }]}
+          data={[{ value: 'INCOME', label: t('txn.income') }, { value: 'REFUND', label: t('txn.refund') }, { value: 'EXPENSE', label: t('txn.expense') }, { value: 'TRANSFER', label: t('txn.transfer') }]}
           value={type}
           onChange={(v) => { setType(v); setPage(0); }}
           w={160}
+        />
+        <Select
+          placeholder={t('txn.reports')}
+          clearable
+          data={[{ value: 'false', label: t('txn.included') }, { value: 'true', label: t('txn.excludedLabel') }]}
+          value={excludedFilter}
+          onChange={(v) => { setExcludedFilter(v); setPage(0); }}
+          w={180}
         />
       </Group>
 
@@ -74,21 +84,23 @@ export function TransactionsPage() {
           </Table.Thead>
           <Table.Tbody>
             {data?.items.map((x) => (
-              <Table.Tr key={x.id}>
+              <Table.Tr key={x.id} style={x.effectivelyExcluded ? { opacity: 0.6 } : undefined}>
                 <Table.Td>{shortDate(x.date, i18n.language)}</Table.Td>
                 <Table.Td>
                   <Badge color={TYPE_COLOR[x.type]} variant="light">{t(`txn.${x.type.toLowerCase()}`)}</Badge>
                   {x.commitment && x.commitment !== 'ONE_TIME' && <Badge ml={4} variant="outline" color="gray">{t(`commitment.${x.commitment}`)}</Badge>}
                   {x.necessity && <Badge ml={4} variant="dot" color="gray">{t(`necessity.${x.necessity}`)}</Badge>}
+                  {x.effectivelyExcluded && <Badge ml={4} variant="outline" color="orange">{t('txn.excludedLabel')}</Badge>}
                 </Table.Td>
                 <Table.Td>
                   {x.type === 'TRANSFER' ? `${x.accountName} → ${x.toAccountName}` : `${x.categoryName ?? '—'}${x.accountName ? ` · ${x.accountName}` : ''}`}
+                  {x.type === 'EXPENSE' && x.refundedAmount != null && <Text size="xs" c="lime.8">{t('txn.refundedOf', { refunded: money(x.refundedAmount, family.baseCurrency, i18n.language), total: money(x.baseAmount, family.baseCurrency, i18n.language) })}</Text>}
                 </Table.Td>
                 <Table.Td>{x.userName}</Table.Td>
                 <Table.Td>{x.note}</Table.Td>
                 <Table.Td ta="right">
-                  <Text c={x.type === 'INCOME' ? 'teal' : x.type === 'EXPENSE' ? 'red' : undefined} fw={500}>
-                    {money(x.amount, x.currency, i18n.language)}
+                  <Text c={x.type === 'INCOME' || x.type === 'REFUND' ? 'teal' : x.type === 'EXPENSE' ? 'red' : undefined} fw={500}>
+                    {x.type === 'REFUND' ? '+' : ''}{money(x.amount, x.currency, i18n.language)}
                   </Text>
                   {x.currency !== family.baseCurrency && <Text size="xs" c="dimmed">{money(x.baseAmount, family.baseCurrency, i18n.language)}</Text>}
                 </Table.Td>

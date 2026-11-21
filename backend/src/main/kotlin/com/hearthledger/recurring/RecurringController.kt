@@ -52,7 +52,7 @@ class RecurringController(
             RecurringRule(
                 familyId = m.familyId, userId = m.userId, type = r.type, amount = r.amount, currency = r.currency.uppercase(),
                 accountId = r.accountId, categoryId = r.categoryId, note = r.note, frequency = r.frequency, startDate = r.startDate,
-                endDate = r.endDate, commitment = commitmentFor(r), necessity = if (r.type == TxnType.EXPENSE) r.necessity else null,
+                endDate = r.endDate, commitment = commitmentFor(r), necessity = if (r.type == TxnType.EXPENSE || r.type == TxnType.REFUND) r.necessity else null,
             ),
         )
         service.generateDue(rule)
@@ -70,7 +70,7 @@ class RecurringController(
                 note = r.note, frequency = r.frequency, startDate = r.startDate, endDate = r.endDate, active = r.active,
                 // Occurrences derive from start date + frequency; restart so none are skipped (inserts are idempotent).
                 nextIndex = if (existing.startDate != r.startDate || existing.frequency != r.frequency) 0 else existing.nextIndex,
-                commitment = commitmentFor(r), necessity = if (r.type == TxnType.EXPENSE) r.necessity else null,
+                commitment = commitmentFor(r), necessity = if (r.type == TxnType.EXPENSE || r.type == TxnType.REFUND) r.necessity else null,
             ),
         )
         if (saved.active) service.generateDue(saved)
@@ -89,6 +89,7 @@ class RecurringController(
 
     private fun validate(r: RecurringRequest, familyId: Long) {
         if (r.type == TxnType.TRANSFER) throw badRequest("RECURRING_TYPE", "Only income and expenses can recur")
+        if (r.type == TxnType.REFUND && r.accountId == null) throw badRequest("REFUND_ACCOUNT", "Choose the account that receives the refund")
         if (r.endDate != null && r.endDate.isBefore(r.startDate)) throw badRequest("RECURRING_DATES", "End date is before start date")
         r.accountId?.let { accounts.findByIdAndFamilyId(it, familyId) ?: throw notFound("Account") }
         r.categoryId?.let { categories.findByIdAndFamilyId(it, familyId) ?: throw notFound("Category") }

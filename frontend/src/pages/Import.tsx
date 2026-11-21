@@ -80,6 +80,16 @@ function Wizard() {
 
   const setRow = (i: number, patch: Partial<ImportRow>) => setRows((rs) => rs.map((r, j) => (j === i ? { ...r, ...patch } : r)));
   const catOptions = (type: string) => categories.filter((c) => c.type === type && !c.archived).map((c) => ({ value: String(c.id), label: c.parentId ? `${categories.find((p) => p.id === c.parentId)?.name} › ${c.name}` : c.name }));
+  // incoming rows may also be refunds of an expense: choosing an expense category turns them into one
+  const rowCatOptions = (r: ImportRow) => (r.type === 'EXPENSE' ? catOptions('EXPENSE') : [
+    { group: t('txn.income'), items: catOptions('INCOME') },
+    { group: t('txn.refund'), items: catOptions('EXPENSE') },
+  ]);
+  const setRowCategory = (i: number, v: string | null, r: ImportRow) => {
+    if (r.type === 'EXPENSE') return setRow(i, { categoryId: v ? Number(v) : null });
+    const isExpenseCat = categories.find((c) => String(c.id) === v)?.type === 'EXPENSE';
+    setRow(i, { categoryId: v ? Number(v) : null, type: isExpenseCat ? 'REFUND' : 'INCOME' });
+  };
   const col = headers?.map((h) => ({ value: h, label: h })) ?? [];
 
   if (preview) {
@@ -95,8 +105,8 @@ function Wizard() {
                   <Table.Td><Checkbox checked={selected.has(i)} onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.currentTarget.checked) n.add(i); else n.delete(i); return n; })} /></Table.Td>
                   <Table.Td>{r.date}</Table.Td>
                   <Table.Td>{r.description}{r.duplicate && <Text size="xs" c="orange">{t('imp.duplicate')}</Text>}</Table.Td>
-                  <Table.Td ta="right"><Text span c={r.type === 'EXPENSE' ? 'red' : 'teal'}>{r.type === 'EXPENSE' ? '-' : '+'}{money(r.amount, currency, i18n.language)}</Text></Table.Td>
-                  <Table.Td w={240}><Select size="xs" clearable searchable data={catOptions(r.type)} value={r.categoryId?.toString() ?? null} onChange={(v) => setRow(i, { categoryId: v ? Number(v) : null })} /></Table.Td>
+                  <Table.Td ta="right"><Text span c={r.type === 'EXPENSE' ? 'red' : 'teal'}>{r.type === 'EXPENSE' ? '-' : '+'}{money(r.amount, currency, i18n.language)}</Text>{r.type === 'REFUND' && <Text size="xs" c="lime.8">{t('txn.refund')}</Text>}</Table.Td>
+                  <Table.Td w={240}><Select size="xs" clearable searchable data={rowCatOptions(r)} value={r.categoryId?.toString() ?? null} onChange={(v) => setRowCategory(i, v, r)} /></Table.Td>
                 </Table.Tr>
               ))}
             </Table.Tbody>

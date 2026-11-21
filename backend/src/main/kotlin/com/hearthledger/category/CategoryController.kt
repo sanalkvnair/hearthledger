@@ -17,6 +17,7 @@ data class CategoryRequest(
     val color: String? = null,
     val defaultNecessity: Necessity? = null,
     val archived: Boolean = false,
+    val excludeFromReports: Boolean = false,
 )
 
 @RestController
@@ -32,7 +33,7 @@ class CategoryController(private val repo: CategoryRepository, private val curre
         val familyId = current.requireAdmin().familyId
         validateParent(r, familyId)
         return repo.save(
-            Category(familyId = familyId, parentId = r.parentId, type = r.type, name = r.name, icon = r.icon, color = r.color, defaultNecessity = r.defaultNecessity),
+            Category(familyId = familyId, parentId = r.parentId, type = r.type, name = r.name, icon = r.icon, color = r.color, defaultNecessity = r.defaultNecessity, excludeFromReports = r.excludeFromReports),
         )
     }
 
@@ -45,7 +46,7 @@ class CategoryController(private val repo: CategoryRepository, private val curre
         return repo.save(
             existing.copy(
                 name = r.name, parentId = r.parentId, type = r.type, icon = r.icon, color = r.color,
-                defaultNecessity = r.defaultNecessity, archived = r.archived,
+                defaultNecessity = r.defaultNecessity, archived = r.archived, excludeFromReports = r.excludeFromReports,
             ),
         )
     }

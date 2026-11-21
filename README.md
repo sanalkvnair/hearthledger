@@ -55,6 +55,8 @@ Account/IBAN-like numbers are masked before the text is sent. Scanned (image-onl
 - **Loans** – annuity, fixed amortization (% of the original principal per year + interest), interest-only, and annuity with balloon
   (residual value, down payment, fees, effective rate via IRR). Existing loans can start from an outstanding balance, and rate changes
   are effective-dated. Payments are booked automatically with their interest/principal split.
+- **Refunds** – money that comes back for an expense (an insurance payout for a card-paid hospital bill, a friend paying their share of the electricity bill) is a *Refund* entry, not income. It uses an expense category, is booked into the account that received it, and reduces that category's expenses and budget in the period of the refund date. It can optionally link to the original expense (total refunds cannot exceed it).
+- **Excluded entries** – tick *Exclude from reports* on an entry, or flag a category (and its subcategories) as excluded, to keep it out of the dashboard, period totals, previous balance, budgets and safety buffer. Excluded entries are still listed, exported, and counted in account balances (card bills, savings).
 - **Faster entry** – default accounts per user, "Save & add another", and a bulk entry grid (all rows saved or none).
 - **Currencies** – base currency per family; manual exchange rates (or per-entry rate).
 

@@ -9,7 +9,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 
-enum class TxnType { INCOME, EXPENSE, TRANSFER }
+enum class TxnType { INCOME, EXPENSE, TRANSFER, REFUND }
 
 @Table("txn")
 data class Txn(
@@ -34,6 +34,8 @@ data class Txn(
     val loanInterestPart: BigDecimal? = null,
     val loanPrincipalPart: BigDecimal? = null,
     val loanScheduleNo: Int? = null,
+    val excluded: Boolean = false,
+    val refundOfTxnId: Long? = null,
     val createdAt: Instant = Instant.now(),
 )
 
