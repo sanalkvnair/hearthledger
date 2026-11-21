@@ -2,25 +2,26 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_DB: familybudget
-      POSTGRES_USER: familybudget
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-familybudget}
+      POSTGRES_DB: hearthledger
+      POSTGRES_USER: hearthledger
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hearthledger}
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U familybudget"]
+      test: ["CMD-SHELL", "pg_isready -U hearthledger"]
       interval: 5s
       retries: 10
 
   backend:
+    image: hearthledger/backend:local
     build: ./backend
     depends_on:
       db:
         condition: service_healthy
     environment:
-      DB_URL: jdbc:postgresql://db:5432/familybudget
-      DB_USER: familybudget
-      DB_PASSWORD: ${POSTGRES_PASSWORD:-familybudget}
+      DB_URL: jdbc:postgresql://db:5432/hearthledger
+      DB_USER: hearthledger
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-hearthledger}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-not-configured}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-not-configured}
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET (openssl rand -hex 32)}
@@ -31,6 +32,7 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
   frontend:
+    image: hearthledger/frontend:local
     build: ./frontend
     depends_on:
       - backend

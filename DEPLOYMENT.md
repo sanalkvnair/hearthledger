@@ -33,8 +33,8 @@ Do not expose the backend directly to the internet: the rate limiter trusts the 
 All state is in PostgreSQL. Take a daily dump and test restores:
 
 ```sh
-docker compose exec -T db pg_dump -U familybudget familybudget | gzip > backup-$(date +%F).sql.gz
-gunzip -c backup-YYYY-MM-DD.sql.gz | docker compose exec -T db psql -U familybudget familybudget
+docker compose exec -T db pg_dump -U hearthledger hearthledger | gzip > backup-$(date +%F).sql.gz
+gunzip -c backup-YYYY-MM-DD.sql.gz | docker compose exec -T db psql -U hearthledger hearthledger
 ```
 
 On managed Postgres, enable the provider's point-in-time recovery. Flyway migrations run automatically on startup; deploy a new backend version only after a fresh backup.
