@@ -1,4 +1,4 @@
-# Open Family Budget
+# HearthLedger
 
 Self-hosted family finance app: income, expenses, savings and budgeting for a whole household.
 

@@ -2,7 +2,7 @@ import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
 
 const en = {
-  appName: 'Open Family Budget',
+  appName: 'HearthLedger',
   nav: { bulk: 'Bulk entry', dashboard: 'Dashboard', transactions: 'Transactions', accounts: 'Accounts', savings: 'Savings', import: 'Import / Export', loans: 'Loans & EMI', budgets: 'Budgets', recurring: 'Recurring', categories: 'Categories', family: 'Family & settings', audit: 'Audit log' },
   common: { save: 'Save', cancel: 'Cancel', add: 'Add', edit: 'Edit', delete: 'Delete', name: 'Name', amount: 'Amount', currency: 'Currency', date: 'Date', note: 'Note', type: 'Type', actions: 'Actions', all: 'All', none: 'None', logout: 'Log out', copy: 'Copy', loading: 'Loading…', previous: 'Previous', next: 'Next', today: 'Today' },
   login: { title: 'Manage your family finances together', google: 'Sign in with Google' },
@@ -37,7 +37,7 @@ const en = {
 };
 
 const sv: typeof en = {
-  appName: 'Open Family Budget',
+  appName: 'HearthLedger',
   nav: { bulk: 'Massinmatning', dashboard: 'Översikt', transactions: 'Transaktioner', accounts: 'Konton', savings: 'Sparande', import: 'Import / Export', loans: 'Lån & avbetalningar', budgets: 'Budgetar', recurring: 'Återkommande', categories: 'Kategorier', family: 'Familj & inställningar', audit: 'Granskningslogg' },
   common: { save: 'Spara', cancel: 'Avbryt', add: 'Lägg till', edit: 'Redigera', delete: 'Ta bort', name: 'Namn', amount: 'Belopp', currency: 'Valuta', date: 'Datum', note: 'Anteckning', type: 'Typ', actions: 'Åtgärder', all: 'Alla', none: 'Ingen', logout: 'Logga ut', copy: 'Kopiera', loading: 'Laddar…', previous: 'Föregående', next: 'Nästa', today: 'Idag' },
   login: { title: 'Hantera familjens ekonomi tillsammans', google: 'Logga in med Google' },
