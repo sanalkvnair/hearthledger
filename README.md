@@ -67,3 +67,7 @@ Account/IBAN-like numbers are masked before the text is sent. Scanned (image-onl
 - **Phase 5** – business-day periods, bulk entry and default accounts, credit-card statements, joint/private accounts, investment valuations, extended loan types.
 
 Browser-driven end-to-end tests (Playwright) are not included: they need a fake OAuth provider. Backend integration tests and `scripts/smoke.sh` cover the main paths.
+
+## License
+
+HearthLedger is free software licensed under the [GNU AGPL-3.0](LICENSE). If you run a modified version as a network service, you must offer its source code to the users of that service. Forks should use their own name.
