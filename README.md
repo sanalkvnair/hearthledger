@@ -20,6 +20,12 @@ and follow its note about `cliPluginsExtraDirs`, or install Docker Desktop).
 Open http://localhost:8081. In Google Cloud Console create an OAuth client with redirect URI
 `http://localhost:8081/login/oauth2/code/google`. Set `COOKIE_SECURE=true` behind HTTPS.
 
+Google only allows `http://` redirect URIs for localhost. To reach it from other devices, expose it over
+HTTPS with the optional Cloudflare Tunnel: create a tunnel in Cloudflare Zero Trust with a public hostname
+pointing to `http://frontend:80`, then set `PUBLIC_URL=https://your.host`, `COOKIE_SECURE=true` and
+`CLOUDFLARE_TUNNEL_TOKEN` in `.env`, add `https://your.host/login/oauth2/code/google` in Google Cloud Console
+and run `docker compose --profile tunnel up -d --build`.
+
 ## Develop
 
 ```sh
