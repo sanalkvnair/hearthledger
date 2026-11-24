@@ -26,6 +26,8 @@ pointing to `http://frontend:80`, then set `PUBLIC_URL=https://your.host`, `COOK
 `CLOUDFLARE_TUNNEL_TOKEN` in `.env`, add `https://your.host/login/oauth2/code/google` in Google Cloud Console
 and run `docker compose --profile tunnel up -d --build`.
 
+To redeploy automatically on every push to `main` (self-hosted GitHub runner + GHCR images), see [DEPLOYMENT.md](DEPLOYMENT.md#auto-deploy-to-a-home-server-windows--docker-desktop).
+
 ## Develop
 
 ```sh

@@ -48,8 +48,9 @@ jobs:
       - if: failure()
         run: docker compose logs --tail=100
 
-    if: github.ref == 'refs/heads/main'
-    needs: [backend, frontend]
+  images:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [backend, frontend, smoke]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -72,3 +73,24 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.component }}:latest
             ${{ env.REGISTRY }}/${{ github.repository }}/${{ matrix.component }}:${{ github.sha }}
+
+  # Runs on the home server (self-hosted Windows runner). Enable with the repository variable DEPLOY_ENABLED=true.
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main' && vars.DEPLOY_ENABLED == 'true'
+    needs: images
+    runs-on: [self-hosted, windows, hearthledger]
+    concurrency:
+      group: deploy
+      cancel-in-progress: false
+    steps:
+      - name: Deploy
+        shell: powershell
+        env:
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+          IMAGE_PREFIX: ${{ env.REGISTRY }}/${{ github.repository }}
+          TAG: ${{ github.sha }}
+        run: |
+          if (-not $env:DEPLOY_DIR) { throw 'Set the repository variable DEPLOY_DIR to the folder with the checkout and .env' }
+          git -C $env:DEPLOY_DIR pull --ff-only
+          if ($LASTEXITCODE -ne 0) { throw 'git pull failed' }
+          & "$env:DEPLOY_DIR\scripts\deploy.ps1" -Dir $env:DEPLOY_DIR -ImagePrefix $env:IMAGE_PREFIX -Tag $env:TAG

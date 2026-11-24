@@ -1,6 +1,7 @@
 services:
   db:
     image: postgres:17
+    restart: unless-stopped
     environment:
       POSTGRES_DB: hearthledger
       POSTGRES_USER: hearthledger
@@ -13,8 +14,9 @@ services:
       retries: 10
 
   backend:
-    image: hearthledger/backend:local
+    image: ${HEARTHLEDGER_IMAGE_PREFIX:-hearthledger}/backend:${HEARTHLEDGER_TAG:-local}
     build: ./backend
+    restart: unless-stopped
     depends_on:
       db:
         condition: service_healthy
@@ -32,8 +34,9 @@ services:
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
 
   frontend:
-    image: hearthledger/frontend:local
+    image: ${HEARTHLEDGER_IMAGE_PREFIX:-hearthledger}/frontend:${HEARTHLEDGER_TAG:-local}
     build: ./frontend
+    restart: unless-stopped
     depends_on:
       - backend
     ports:

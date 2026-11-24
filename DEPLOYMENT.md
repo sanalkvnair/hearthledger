@@ -22,6 +22,21 @@ Two containers plus PostgreSQL: `frontend` (nginx serving the SPA and reverse-pr
 
 Do not expose the backend directly to the internet: the rate limiter trusts the `X-Forwarded-For` header set by nginx. If another proxy sits in front of nginx, make sure it sets `X-Forwarded-For` and adjust nginx to use `$http_x_forwarded_for` (or the `realip` module).
 
+## Auto-deploy to a home server (Windows + Docker Desktop)
+
+On every push to `main`, CI runs the tests and smoke test, publishes the images to GHCR (`ghcr.io/<owner>/<repo>/{backend,frontend}:<commit sha>`), and a self-hosted runner on the server runs `scripts/deploy.ps1`: it pulls the repo, takes a `pg_dump` backup (last 14 kept in `backups\`), pulls the new images, restarts the stack, checks it responds and rolls back to the previous tag if it does not (database migrations are not reverted; restore from the backup if needed).
+
+One-time setup on the server:
+
+1. Clone the repo into a permanent folder (e.g. `C:\hearthledger`), create `.env` there (see `.env.example`; add `COMPOSE_PROFILES=tunnel` to keep Cloudflare Tunnel running) and start the stack once with `docker compose up -d --build`.
+2. Docker Desktop: *Settings → General → Start Docker Desktop when you sign in*; enable automatic sign-in or run the runner service as a user in the `docker-users` group, otherwise containers do not start after a reboot.
+3. GitHub → repo *Settings → Actions → Runners → New self-hosted runner → Windows*. Configure it with label `hearthledger` and install it as a service (`.\svc.cmd install` / `.\svc.cmd start`, or answer yes to the service prompt) under that Docker user.
+4. Image pulls: make the two packages public (GitHub → Packages → each package → *Package settings → Change visibility*), or run `docker login ghcr.io` once on the server with a PAT that has `read:packages`.
+5. Repo *Settings → Secrets and variables → Actions → Variables*: `DEPLOY_DIR` = the folder from step 1 (e.g. `C:\hearthledger`) and `DEPLOY_ENABLED` = `true`.
+6. Repo *Settings → Actions → General*: require approval for workflows from outside collaborators. The repository is public and the runner executes workflow code on your machine, so never allow fork pull requests to run on it (the deploy job only runs on pushes to `main`).
+
+Roll back manually with `powershell -File scripts\deploy.ps1 -Dir C:\hearthledger -ImagePrefix ghcr.io/<owner>/<repo> -Tag <older sha>`. Restore a backup with `gunzip` (e.g. via Git Bash) piped into `docker compose exec -T db psql -U hearthledger hearthledger` on an empty database.
+
 ## Hardening already in place
 
 - Per-IP rate limits (default 600 req/min general, 30 req/min for login/auth/import previews; `app.rate-limit.general|sensitive`).
