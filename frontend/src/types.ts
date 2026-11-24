@@ -172,6 +172,8 @@ export interface RateChange {
   id: number;
   effectiveFrom: string;
   annualRate: number;
+  fixedUntil: string | null;
+  effectiveRate: number;
 }
 
 export interface Loan {
@@ -201,6 +203,19 @@ export interface Loan {
   nextPayment: number | null;
   active: boolean;
   rates: RateChange[];
+  termMonths: number | null;
+  initialRate: number;
+  initialEffectiveRate: number;
+  amortizationAmount: number | null;
+  monthlyAmortization: number | null;
+  disbursedOn: string | null;
+  rateFixedUntil: string | null;
+  currentRateFixedUntil: string | null;
+  accountId: number | null;
+  categoryId: number | null;
+  nextPaymentDate: string | null;
+  nextInterest: number | null;
+  nextPrincipal: number | null;
 }
 
 export interface LoanPreview {
@@ -215,6 +230,11 @@ export interface LoanPreview {
   effectiveRate: number | null;
   openEnded: boolean;
   firstRows: ScheduleRow[];
+  firstDate: string;
+  lastDate: string | null;
+  firstInterest: number;
+  firstPrincipal: number;
+  monthlyAmortization: number | null;
 }
 
 export interface ScheduleRow {

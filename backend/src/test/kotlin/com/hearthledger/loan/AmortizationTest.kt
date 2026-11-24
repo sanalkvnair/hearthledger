@@ -103,4 +103,49 @@ class AmortizationTest {
         assertEquals(12, rows.size)
         assertTrue(rows[0].principal + rows[0].interest < BigDecimal(600))
     }
+
+    private fun reference(type: LoanType, tenure: Int?, amount: String? = null) = Loan(
+        familyId = 1, name = "Ref", currency = "SEK", principal = BigDecimal(1105000), interestRate = BigDecimal("4.94"), tenureMonths = tenure,
+        emi = BigDecimal.ONE, startDate = d("2023-12-28"), term = LoanTerm.LONG_TERM, loanType = type, amortizationAmount = amount?.let(::BigDecimal),
+    )
+
+    private val referenceRates = listOf(
+        RateChange(d("2024-10-29"), BigDecimal("4.13")), RateChange(d("2025-02-04"), BigDecimal("3.13")), RateChange(d("2025-08-04"), BigDecimal("2.93")),
+        RateChange(d("2025-10-29"), BigDecimal("2.65")), RateChange(d("2026-05-05"), BigDecimal("2.75")),
+    )
+
+    @Test
+    fun `fixed amortization with a monthly amount reproduces a real loan`() {
+        val l = reference(LoanType.FIXED_AMORTIZATION, 360, "3683")
+        val row = LoanCalculator.schedule(l, referenceRates)[35] // 2026-11-28
+        assertEquals(d("2026-11-28"), row.date)
+        assertEquals(0, BigDecimal("2237").compareTo(row.interest.setScale(0, java.math.RoundingMode.HALF_UP)))
+        assertEquals(0, BigDecimal("3683").compareTo(row.principal))
+        assertEquals(0, BigDecimal("5920").compareTo(row.payment.setScale(0, java.math.RoundingMode.HALF_UP)))
+    }
+
+    @Test
+    fun `fixed amortization defaults to principal divided by the term and ends at the term`() {
+        val l = reference(LoanType.FIXED_AMORTIZATION, 300)
+        val rows = LoanCalculator.schedule(l, referenceRates)
+        assertEquals(300, rows.size)
+        assertEquals(0, BigDecimal("3683.3333").compareTo(LoanCalculator.monthlyAmortization(l)))
+        assertEquals(0, rows.last().balance.signum())
+    }
+
+    @Test
+    fun `interest only with a term repays the principal in the last row`() {
+        val l = reference(LoanType.INTEREST_ONLY, 720)
+        val rows = LoanCalculator.schedule(l, referenceRates)
+        assertEquals(720, rows.size)
+        assertEquals(0, BigDecimal("2532").compareTo(rows[35].interest.setScale(0, java.math.RoundingMode.HALF_UP)))
+        assertEquals(0, rows[35].principal.signum())
+        assertEquals(0, BigDecimal(1105000).compareTo(rows.last().principal))
+        assertEquals(0, rows.last().balance.signum())
+    }
+
+    @Test
+    fun `effective rate compounds the nominal rate monthly`() {
+        assertEquals(0, BigDecimal("5.0534").compareTo(Amortization.effectiveOf(BigDecimal("4.94"))))
+    }
 }

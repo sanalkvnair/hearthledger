@@ -48,6 +48,12 @@ data class Loan(
     val loanType: LoanType = LoanType.ANNUITY,
     /** Yearly repayment as a percentage of the original principal (FIXED_AMORTIZATION). */
     val amortizationRate: BigDecimal? = null,
+    /** Yearly repayment of a FIXED_AMORTIZATION loan as a fixed monthly amount; takes precedence over [amortizationRate]. */
+    val amortizationAmount: BigDecimal? = null,
+    /** Informational: when the loan was taken out ([startDate] is the first payment). */
+    val disbursedOn: LocalDate? = null,
+    /** Informational: until when the initial rate is fixed; null means flexible. */
+    val rateFixedUntil: LocalDate? = null,
     val balloonAmount: BigDecimal = BigDecimal.ZERO,
     val downPayment: BigDecimal = BigDecimal.ZERO,
     val setupFee: BigDecimal = BigDecimal.ZERO,
@@ -80,6 +86,10 @@ object Amortization {
     fun emi(principal: BigDecimal, annualPercent: BigDecimal, months: Int): BigDecimal = LoanCalculator.pmt(principal, annualPercent, months, BigDecimal.ZERO)
 
     fun monthlyRate(annualPercent: BigDecimal): BigDecimal = annualPercent.divide(BigDecimal(1200), mc)
+
+    /** Annual rate in percent with monthly compounding. */
+    fun effectiveOf(annualPercent: BigDecimal): BigDecimal =
+        BigDecimal((Math.pow(1 + annualPercent.toDouble() / 1200, 12.0) - 1) * 100).setScale(4, RoundingMode.HALF_UP)
 }
 
 object LoanCalculator {
@@ -88,6 +98,14 @@ object LoanCalculator {
 
     /** Amount actually borrowed: the opening balance for a running loan, otherwise principal minus down payment. */
     fun financed(loan: Loan): BigDecimal = loan.openingBalance ?: (loan.principal - loan.downPayment)
+
+    /** Monthly repayment of a fixed amortization loan: explicit amount, else yearly % of the principal, else spread over the term. */
+    fun monthlyAmortization(loan: Loan): BigDecimal = when {
+        loan.amortizationAmount != null -> loan.amortizationAmount
+        loan.amortizationRate != null -> loan.principal.multiply(loan.amortizationRate).divide(BigDecimal(1200), 4, RoundingMode.HALF_UP)
+        loan.tenureMonths != null -> financed(loan).divide(BigDecimal(loan.tenureMonths), 4, RoundingMode.HALF_UP)
+        else -> BigDecimal.ZERO
+    }
 
     /** Instalment that repays [balance] over [months] months leaving [balloon] outstanding. */
     fun pmt(balance: BigDecimal, annualPercent: BigDecimal, months: Int, balloon: BigDecimal): BigDecimal {
@@ -110,8 +128,8 @@ object LoanCalculator {
         val rows = ArrayList<ScheduleRow>()
         val count = when (loan.loanType) {
             LoanType.ANNUITY, LoanType.BALLOON_ANNUITY -> tenure ?: 0
-            LoanType.FIXED_AMORTIZATION -> MAX_ROWS
-            LoanType.INTEREST_ONLY -> maxOf(24, java.time.temporal.ChronoUnit.MONTHS.between(loan.startDate, openEndedUntil).toInt() + 2)
+            LoanType.FIXED_AMORTIZATION -> tenure ?: MAX_ROWS
+            LoanType.INTEREST_ONLY -> tenure ?: maxOf(24, java.time.temporal.ChronoUnit.MONTHS.between(loan.startDate, openEndedUntil).toInt() + 2)
         }
         val balloon = if (loan.loanType == LoanType.BALLOON_ANNUITY) loan.balloonAmount else BigDecimal.ZERO
         var payment = loan.emi
@@ -130,9 +148,8 @@ object LoanCalculator {
                     // the last instalment absorbs rounding (and the balloon) so the balance ends at exactly zero
                     if (last) balance else (payment - interest).min(balance)
                 }
-                LoanType.FIXED_AMORTIZATION ->
-                    loan.principal.multiply(loan.amortizationRate ?: BigDecimal.ZERO).divide(BigDecimal(1200), 4, RoundingMode.HALF_UP).min(balance)
-                LoanType.INTEREST_ONLY -> BigDecimal.ZERO
+                LoanType.FIXED_AMORTIZATION -> if (last) balance else monthlyAmortization(loan).min(balance)
+                LoanType.INTEREST_ONLY -> if (last) balance else BigDecimal.ZERO
             }
             previousRate = rate
             balance = (balance - principalPart).max(BigDecimal.ZERO)
