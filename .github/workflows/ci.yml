@@ -41,9 +41,13 @@ jobs:
   smoke:
     needs: [backend, frontend]
     runs-on: ubuntu-latest
+    env:
+      JWT_SECRET: ci-smoke-only-secret-0123456789abcdef0123456789abcdef
+      GOOGLE_CLIENT_ID: x
+      GOOGLE_CLIENT_SECRET: x
     steps:
       - uses: actions/checkout@v4
-      - run: JWT_SECRET=$(openssl rand -hex 32) GOOGLE_CLIENT_ID=x GOOGLE_CLIENT_SECRET=x docker compose up -d --build --wait --wait-timeout 240
+      - run: docker compose up -d --build --wait --wait-timeout 240
       - run: sh scripts/smoke.sh http://localhost:8081
       - if: failure()
         run: docker compose logs --tail=100
