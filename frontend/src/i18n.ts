@@ -4,6 +4,7 @@ import { initReactI18next } from 'react-i18next';
 const en = {
   appName: 'HearthLedger',
   nav: { bulk: 'Bulk entry', dashboard: 'Dashboard', transactions: 'Transactions', accounts: 'Accounts', savings: 'Savings', import: 'Import / Export', loans: 'Loans & EMI', budgets: 'Budgets', recurring: 'Recurring', categories: 'Categories', family: 'Family & settings', audit: 'Audit log' },
+  version: { frontend: 'Frontend', backend: 'Backend', mismatch: 'Frontend and backend versions differ. Reload the page (Ctrl+F5).' },
   common: { save: 'Save', cancel: 'Cancel', add: 'Add', edit: 'Edit', delete: 'Delete', name: 'Name', amount: 'Amount', currency: 'Currency', date: 'Date', note: 'Note', type: 'Type', actions: 'Actions', all: 'All', none: 'None', logout: 'Log out', copy: 'Copy', loading: 'Loading…', previous: 'Previous', next: 'Next', today: 'Today' },
   login: { title: 'Manage your family finances together', google: 'Sign in with Google' },
   onboarding: { title: 'Welcome! Set up your family', create: 'Create a family', join: 'Join with an invitation code', familyName: 'Family name', baseCurrency: 'Base currency (e.g. EUR)', cycleStartDay: 'Month starts on day', code: 'Invitation code', joinBtn: 'Join family' },
@@ -42,6 +43,7 @@ const en = {
 const sv: typeof en = {
   appName: 'HearthLedger',
   nav: { bulk: 'Massinmatning', dashboard: 'Översikt', transactions: 'Transaktioner', accounts: 'Konton', savings: 'Sparande', import: 'Import / Export', loans: 'Lån & avbetalningar', budgets: 'Budgetar', recurring: 'Återkommande', categories: 'Kategorier', family: 'Familj & inställningar', audit: 'Granskningslogg' },
+  version: { frontend: 'Frontend', backend: 'Backend', mismatch: 'Frontend och backend har olika versioner. Ladda om sidan (Ctrl+F5).' },
   common: { save: 'Spara', cancel: 'Avbryt', add: 'Lägg till', edit: 'Redigera', delete: 'Ta bort', name: 'Namn', amount: 'Belopp', currency: 'Valuta', date: 'Datum', note: 'Anteckning', type: 'Typ', actions: 'Åtgärder', all: 'Alla', none: 'Ingen', logout: 'Logga ut', copy: 'Kopiera', loading: 'Laddar…', previous: 'Föregående', next: 'Nästa', today: 'Idag' },
   login: { title: 'Hantera familjens ekonomi tillsammans', google: 'Logga in med Google' },
   onboarding: { title: 'Välkommen! Ställ in din familj', create: 'Skapa en familj', join: 'Gå med via inbjudningskod', familyName: 'Familjens namn', baseCurrency: 'Basvaluta (t.ex. SEK)', cycleStartDay: 'Månaden börjar dag', code: 'Inbjudningskod', joinBtn: 'Gå med i familjen' },

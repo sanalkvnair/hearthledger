@@ -34,3 +34,11 @@ export function useApiMutation<V>(fn: (v: V) => Promise<unknown>, invalidate: st
     onError: (e: Error) => notifications.show({ color: 'red', message: e.message }),
   });
 }
+
+export const useBackendVersion = () =>
+  useQuery({
+    queryKey: ['version'],
+    queryFn: () => api<{ version: string; commit: string }>('/version'),
+    staleTime: Infinity,
+    retry: false,
+  });

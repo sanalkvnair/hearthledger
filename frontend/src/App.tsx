@@ -1,3 +1,4 @@
+import { VersionInfo } from './components/VersionInfo';
 import { AppShell, Avatar, Burger, Button, Center, Group, Loader, NavLink, Stack, Text, Title, useMantineColorScheme } from '@mantine/core';
 import { IconBuildingBank, IconCalendarRepeat, IconCategory, IconChartPie, IconFileImport, IconHistory, IconPigMoney, IconReceipt, IconTableImport, IconReportMoney, IconTargetArrow, IconUsers } from '@tabler/icons-react';
 import { useQueryClient } from '@tanstack/react-query';
@@ -74,7 +75,7 @@ function Shell() {
   };
 
   return (
-    <AppShell header={{ height: 52 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }} padding="md">
+    <AppShell header={{ height: 52 }} footer={{ height: 28 }} navbar={{ width: 240, breakpoint: 'sm', collapsed: { mobile: !opened } }} padding="md">
       <AppShell.Header hiddenFrom="sm">
         <Group h="100%" px="md" gap="sm">
           <Burger opened={opened} onClick={toggle} size="sm" aria-label="Menu" />
@@ -101,6 +102,7 @@ function Shell() {
               <Text size="sm" truncate>{me?.name}</Text>
             </Group>
             <Button variant="subtle" size="xs" onClick={logout}>{t('common.logout')}</Button>
+            <VersionInfo />
           </Stack>
         </Stack>
       </AppShell.Navbar>
@@ -121,6 +123,9 @@ function Shell() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AppShell.Main>
+      <AppShell.Footer px="md" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>
+        <VersionInfo align="flex-end" />
+      </AppShell.Footer>
     </AppShell>
   );
 }

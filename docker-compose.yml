@@ -15,7 +15,11 @@ services:
 
   backend:
     image: ${HEARTHLEDGER_IMAGE_PREFIX:-hearthledger}/backend:${HEARTHLEDGER_TAG:-local}
-    build: ./backend
+    build:
+      context: ./backend
+      args: &version_args
+        APP_VERSION: ${HEARTHLEDGER_VERSION:-dev}
+        GIT_SHA: ${HEARTHLEDGER_COMMIT:-}
     restart: unless-stopped
     depends_on:
       db:
@@ -35,7 +39,9 @@ services:
 
   frontend:
     image: ${HEARTHLEDGER_IMAGE_PREFIX:-hearthledger}/frontend:${HEARTHLEDGER_TAG:-local}
-    build: ./frontend
+    build:
+      context: ./frontend
+      args: *version_args
     restart: unless-stopped
     depends_on:
       - backend

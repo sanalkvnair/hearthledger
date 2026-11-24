@@ -3,6 +3,9 @@ WORKDIR /app
 COPY package.json package-lock.json* ./
 RUN npm install
 COPY . .
+ARG APP_VERSION=dev
+ARG GIT_SHA=
+ENV APP_VERSION=$APP_VERSION GIT_SHA=$GIT_SHA
 RUN npm run build
 
 FROM nginx:alpine

@@ -37,6 +37,10 @@ One-time setup on the server:
 
 Roll back manually with `powershell -File scripts\deploy.ps1 -Dir C:\hearthledger -ImagePrefix ghcr.io/<owner>/<repo> -Tag <older sha>`. Restore a backup with `gunzip` (e.g. via Git Bash) piped into `docker compose exec -T db psql -U hearthledger hearthledger` on an empty database.
 
+## Version
+
+The version (`VERSION` file at the repo root, e.g. `0.2.0`) and the short commit are shown at the bottom of the sidebar and in the page footer; hover for the backend version (an orange dot means frontend and backend differ, e.g. a stale browser cache after a deploy). CI bakes both into the images via the `APP_VERSION` / `GIT_SHA` build args; local builds show `dev` unless you set `HEARTHLEDGER_VERSION` / `HEARTHLEDGER_COMMIT`. Bump `VERSION` when you want a new number.
+
 ## Hardening already in place
 
 - Per-IP rate limits (default 600 req/min general, 30 req/min for login/auth/import previews; `app.rate-limit.general|sensitive`).
